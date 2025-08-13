@@ -1,3 +1,6 @@
-import './bootstrap';
+import './bootstrap.js';
 
-alert('hello from the JS');
+window.Echo.channel('notifications')
+    .listen('UserSessionChange', (event) => {
+        console.log('Event received:', event);
+});

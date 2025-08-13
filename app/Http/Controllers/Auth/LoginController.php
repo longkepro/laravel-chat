@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use App\Events\UserSessionChange;
 
     class LoginController extends Controller
 {
@@ -16,30 +17,37 @@ use Illuminate\Validation\ValidationException;
 
     public function login(Request $request)
     {
-        $credentials = $request->only('userName', 'password');
+        $credentials = $request->only('username', 'password');
 
         $request->validate([
-                'userName' => 'required|string',
-                'password' => 'required|string|',
+                'username' => 'required|string',
+                'password' => 'required|string',
             ]);
 
         if (Auth::attempt($credentials)) {
 
             request()->session()->regenerate();
 
-            return redirect()->intended('/'); // hoặc route bất kỳ
+            $user = Auth::user();
+
+            //broadcast(new UserSessionChange("{$user->username} is online", "success"));
+
+            return redirect()->intended('/'); 
         }
 
         else {
             throw ValidationException::withMessages([
-                'userName' => 'Wrong username or password',
+                'username' => 'Wrong username or password',
                 'password' => 'Wrong username or password'
             ]);
         }
     }
-    public function destroy()
+    public function destroy(Request $request)
     {
         Auth::logout();
-        return redirect()->intended('/');
+        $request->session()->invalidate();        // Hủy toàn bộ session
+        $request->session()->regenerateToken();   // Tạo CSRF token mới
+
+    return redirect('/');
     }
 }

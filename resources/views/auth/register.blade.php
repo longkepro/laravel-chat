@@ -19,11 +19,11 @@
       <x-form-title>Sign up</x-form-title>
 
       <div class="w-4/5">
-        <label for="userName" class="block text-sm font-medium text-gray-700">
+        <label for="username" class="block text-sm font-medium text-gray-700">
           <i class="fas fa-user mr-1"></i> Username:
         </label>
-        <x-form-input type="text" id="userName" name="userName" />
-        <x-form-error name="userName" />
+        <x-form-input type="text" id="username" name="username" />
+        <x-form-error name="username" />
       </div>
 
       <div class="w-4/5 space-y-1">
@@ -52,7 +52,11 @@
 
       <x-form-button class="mt-4 mb-2"> Sign up</x-form-button>
 
-      <x-social-auth-button url="{{ url('/login/google')}}" logo="logos/google-logo-png-google-icon-logo-png-transparent-svg-vector-bie-supply-14.png"/>
+      <div class="flex gap-4">
+        <x-social-auth-button url="{{ url('/login/google')}}" logo="logos/google-logo-png-google-icon-logo-png-transparent-svg-vector-bie-supply-14.png"></x-social-auth-button>
+
+        <x-social-auth-button url="{{ url('/login/facebook')}}" logo="logos/Facebook_Logo_2023.png"></x-social-auth-button>
+      </div>
 
       <div class="text-sm mt-4 text-gray-700">
         Already have an account? <a href="/login" class="text-blue-500 hover:underline"> Log in</a>

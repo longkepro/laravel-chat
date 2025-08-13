@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\testController;
@@ -10,10 +11,19 @@ use App\Models\User;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use App\Http\Middleware\PreventBackHistory;
+use App\Events\UserSessionChange;
+use Illuminate\Support\Facades\Cache;
 
-Route::get('/', function () {
-    return view('welcome');
+Route::middleware([ PreventBackHistory::class])->group(function () {
+    Route::get('/', function () {
+         
+         return view('welcome');
+
+    });
+    // các route cần bảo vệ khác...
 });
+
 
 use Illuminate\Support\Facades\DB;
 
@@ -32,10 +42,6 @@ Route::get('/login', [LoginController::class, 'showLoginForm']
 Route::post('/login', [LoginController::class, 'login']
 );
 
-Route::get('/test', function(){
-    return new \App\Mail\test();
-});
-
 Route::get('/register',[RegisterController::class, 'showRegisterForm'])->name('register');
 
 Route::post('/register',[RegisterController::class, 'Register']);
@@ -52,7 +58,19 @@ Route::get('/check-db', function () {
 });
 
 Route::get('/login/google', [SocialAuthController::class, 'redirectToGoogle'])->name('googleLogin');
-Route::get('/login/google/callback',[SocialAuthController::class, 'handleGoogleCallback']);
+Route::get('/login/google/callback',[SocialAuthController::class, 'handleGoogleCallback'])->name('GoogleCallback');
 
 Route::get('/login/facebook', [SocialAuthController::class, 'redirectToFaceBook'])->name('faceBookLogin');
-Route::get('/login/facebook/callback',[SocialAuthController::class, 'handleFaceBookCallback']);
+Route::get('/login/facebook/callback',[SocialAuthController::class, 'handleFaceBookCallback'])->name('FacebookCallback');
+
+use Illuminate\Http\Request;
+
+Route::get('/notification_send', function() {
+    UserSessionChange::dispatch('User logged in', 'success');
+    //event(new UserSessionChange( 'User logged in',  'success'));
+});
+
+
+
+
+

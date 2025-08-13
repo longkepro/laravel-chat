@@ -17,11 +17,11 @@ class RegisterController extends Controller
 
     public function Register(Request $request)
     {
-        $credentials = $request->only('userName','email', 'password','password_confirmation');
+        $credentials = $request->only('username','email', 'password','password_confirmation');
 
         //validate
         $attributes = $request->validate([
-                'userName' => 'required|string',
+                'username' => 'required|string',
                 'password' => ['required', 'string',RulesPassword::default(),'confirmed'],
                 'email' => 'required|email|'
             ]);

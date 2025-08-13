@@ -21,11 +21,11 @@
             <x-form-title for='title'> Sign In </x-form-title>
 
             <div class="w-4/5 space-y-1">
-                <label for="userName" class="text-sm font-medium text-gray-700">
+                <label for="username" class="text-sm font-medium text-gray-700">
                     <i class="fas fa-user mr-2"></i>User name:
                 </label>
-                <x-form-input id="userName" name="userName" type="text"  />
-                <x-form-error name="userName" />
+                <x-form-input id="username" name="username" type="text"  />
+                <x-form-error name="username" />
             </div>
 
             <div class="w-4/5 space-y-1">
@@ -37,7 +37,7 @@
             </div>
 
             <x-form-button>Log In</x-form-button>
-            <div class="flex space-y-3 gap-4">
+            <div class="flex gap-4">
                 <x-social-auth-button url="{{ url('/login/google')}}" logo="logos/google-logo-png-google-icon-logo-png-transparent-svg-vector-bie-supply-14.png"></x-social-auth-button>
 
                 <x-social-auth-button url="{{ url('/login/facebook')}}" logo="logos/Facebook_Logo_2023.png"></x-social-auth-button>
