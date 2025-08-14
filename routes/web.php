@@ -13,7 +13,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use App\Http\Middleware\PreventBackHistory;
 use App\Events\UserSessionChange;
+use App\Http\Controllers\ChatController;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 Route::middleware([ PreventBackHistory::class])->group(function () {
     Route::get('/', function () {
@@ -24,8 +26,9 @@ Route::middleware([ PreventBackHistory::class])->group(function () {
     // các route cần bảo vệ khác...
 });
 
+route::get('/dashboard', [ChatController::class, 'index'])->middleware(['auth'])->name('dashboard');
 
-use Illuminate\Support\Facades\DB;
+
 
 Route::get('/test-db', function () {
     try {

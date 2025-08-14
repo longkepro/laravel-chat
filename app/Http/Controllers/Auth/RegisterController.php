@@ -17,7 +17,7 @@ class RegisterController extends Controller
 
     public function Register(Request $request)
     {
-        $credentials = $request->only('username','email', 'password','password_confirmation');
+        //$credentials = $request->only('username','email', 'password','password_confirmation');
 
         //validate
         $attributes = $request->validate([
@@ -25,6 +25,8 @@ class RegisterController extends Controller
                 'password' => ['required', 'string',RulesPassword::default(),'confirmed'],
                 'email' => 'required|email|'
             ]);
+
+            //dd($request->all());
 
         //create user 
         $user = User::create($attributes);
