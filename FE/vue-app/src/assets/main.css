@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Simple global reset to avoid centered demo layout from Vite scaffold */
+body {
+  background-color: #f5f5f4;
+  color: #1c1917;
+}
+
+#app {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
