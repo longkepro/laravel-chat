@@ -5,10 +5,31 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+<<<<<<< HEAD
 use Illuminate\Support\Facades\Hash;
 
 class profileController extends Controller
 {
+=======
+
+class profileController extends Controller
+{
+    public function getSelfProfile()
+    {
+        $user = User::Auth()->user();
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        return response()->json([
+            'id' => $user->id,
+            'username' => $user->username,
+            'email' => $user->email,
+            'avatar' => $user->avatar,
+        ]);
+    }
+>>>>>>> 8dfed6d12cbadca8fa4b0ce33d467c2a0d13f1cd
     public function updateAvatar(Request $request)
     {
         $request->validate([
@@ -58,6 +79,7 @@ class profileController extends Controller
             'avatar' => $user->avatar,
         ]);
     }
+<<<<<<< HEAD
     public function updatePassword(Request $request)
     {
         $request->validate([
@@ -91,4 +113,6 @@ class profileController extends Controller
 
         return response()->json(['results' => $users]);
     }
+=======
+>>>>>>> 8dfed6d12cbadca8fa4b0ce33d467c2a0d13f1cd
 }
