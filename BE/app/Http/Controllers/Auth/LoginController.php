@@ -64,7 +64,6 @@ use App\Events\UserSessionChange;
     {
         $user = $request->user();
         if ($user) {
-            // Revoke all tokens (access + refresh) for simplicity
             $user->tokens()->delete();
         }
 

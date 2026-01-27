@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\ChatController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\profileController;
 
 Route::prefix('auth')->group(function () {
     Route::post('login', [LoginController::class, 'login']);
@@ -24,4 +25,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('conversations/{conversation}/messages', [ChatController::class, 'getMessages']);
     Route::post('conversations/sendmessages', [ChatController::class, 'sendMessage']);
     Route::post('conversations/create', [ChatController::class, 'createConversation']);
+    Route::get('profile/{userID}', [profileController::class, 'getProfile']);
+    Route::post('profile/updateAvatar', [profileController::class, 'updateAvatar']);
+    Route::post('profile/updateName', [profileController::class, 'updateName']);
+    Route::post('updatePassword', [profileController::class, 'updatePassword']);
+    Route::get('users/search', [profileController::class, 'searchUsers']);
 });
