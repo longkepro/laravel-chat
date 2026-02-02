@@ -14,6 +14,7 @@ use App\Models\MessageRead;
 class ChatController extends Controller
 {
 
+    //gửi tin nhắn
     public function sendMessage(Request $request)
     {
         $rules = [
@@ -31,6 +32,7 @@ class ChatController extends Controller
             'sender_id' => $request->input('sender_id'),
             'receiver_id' => $receiverId,
             'message' => $request->input('message'),
+            'conversation_id' => $request->input('conversation_id'),
             'attachment' => $request->input('attachments') ?? null,
         ]);
 
@@ -42,23 +44,38 @@ class ChatController extends Controller
         return response()->json(['status' => 'Message Sent!', 'message' => $message]);
     }
 
-    public function getMessages($conversationID)
+    // Lấy tin nhắn cũ hơn (Load Previous - Kéo lên trên)
+    public function getOlderMessages($conversationID, $MessageID = null)
     {
-        $conversation = Conversation::findOrFail($conversationID);
-        $messages = Message::where(function ($q) use ($conversation) {
-            $q->where('sender_id', $conversation->user1_id)
-              ->where('receiver_id', $conversation->user2_id);
-        })->orWhere(function ($q) use ($conversation) {
-            $q->where('sender_id', $conversation->user2_id)
-              ->where('receiver_id', $conversation->user1_id);
-        })
-        ->orderBy('created_at', 'asc')
-        ->paginate(20);
+        $query = Message::where('conversation_id', $conversationID);
 
-        return response()->json($messages);
+        if ($MessageID) {
+            $query->where('id', '<', $MessageID);
+        }
+
+        $messages = $query->orderBy('id', 'desc') // Lấy những tin sát mốc thời gian nhất
+                        ->limit(20)             
+                        ->get();
+
+
+        return response()->json($messages->reverse()->values());
     }
 
-    public function getConversationList(int $perPage = 15)
+    // Lấy tin nhắn mới hơn (Load Next - Kéo xuống dưới)
+    public function getNewerMessages($conversationID, $MessageID)
+    {
+        
+        $messages = Message::where('conversation_id', $conversationID)
+            ->where('id', '>', $MessageID)
+            ->orderBy('id', 'asc') 
+            ->limit(20)
+            ->get();
+
+        return response()->json($messages->values());
+    }
+
+    //lấy danh sách cuộc trò chuyện của người dùng
+    public function getConversationList()
     {
         $userId = Auth::id();
 
@@ -72,7 +89,7 @@ class ChatController extends Controller
                     ->orWhere('user2_id', $userId);
             })
             ->latest('updated_at')
-            ->paginate($perPage);
+            ->paginate(20);
 
         $conversations->getCollection()->transform(function ($conversation) use ($userId) {
             $receiver = $conversation->user1_id === $userId
@@ -97,6 +114,7 @@ class ChatController extends Controller
         return response()->json($conversations);
     }
 
+    //tạo cuộc trò chuyện mới
     public function createConversation(Request $request)
     {
         $rules = [
@@ -124,4 +142,74 @@ class ChatController extends Controller
         $request->merge(['conversation_id' => $conversation->id]);
         $this->sendMessage($request);
     }
+
+    //tìm kiếm tin nhắn trong tất cả các cuộc trò chuyện của người dùng
+    public function searchMessages(Request $request)
+    {
+        $request->validate([
+            'query' => 'required|string|max:255',
+        ]);
+
+        $userId = Auth::id();
+        $query = $request->input('query');
+
+       $messages = Message::where(function ($q) use ($userId) {
+            $q->where('sender_id', $userId)
+              ->orWhere('receiver_id', $userId);
+        })
+        ->where('message', 'LIKE', "%{$query}%")
+        ->orderBy('created_at', 'desc')
+        ->paginate(20  );
+
+        return response()->json($messages);
+    }
+
+    //lấy tin nhắn xung quanh tin nhắn được tìm thấy
+    public function fetchSearchedMessages($conversationId, $messageId)
+    {
+        $userId = Auth::id();
+
+        $conversation = Conversation::where('id', $conversationId)
+            ->where(fn ($q) =>
+                $q->where('user1_id', $userId)
+                ->orWhere('user2_id', $userId)
+            )
+            ->exists();
+
+        $baseQuery = Message::with([
+            'sender:id,username,avatar',
+            'receiver:id,username,avatar',
+        ])->where('conversation_id', $conversationId);
+
+        // Older messages
+        $older = (clone $baseQuery)
+            ->where('id', '<', $messageId)
+            ->orderBy('id', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Anchor
+        $anchor = (clone $baseQuery)
+            ->where('id', $messageId)
+            ->firstOrFail();
+
+        // Newer messages
+        $newer = (clone $baseQuery)
+            ->where('id', '>', $messageId)
+            ->orderBy('id', 'asc')
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'anchor_id' => $messageId,
+            'messages' => $older
+                ->reverse()
+                ->push($anchor)
+                ->merge($newer)
+                ->values(),
+            'has_older' => $older->count() === 10,
+            'has_newer' => $newer->count() === 10,
+        ]);
+    }
+
 }

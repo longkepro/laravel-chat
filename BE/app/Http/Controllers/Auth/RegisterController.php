@@ -28,6 +28,7 @@ class RegisterController extends Controller
 
         $attributes = $request->only('username','email', 'password');
         $attributes['password'] = Hash::make($attributes['password']);
+        $attributes['profile_name'] = $request->username;
         User::create($attributes);
 
         // //log in

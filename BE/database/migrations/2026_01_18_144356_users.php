@@ -20,26 +20,8 @@ return new class extends Migration
             $table->string('google_id', 100)->nullable();
             $table->string('facebook_id', 100)->nullable();
             $table->string('avatar')->nullable();
+            $table->string('profile_name', 100);
             $table->timestamps();
-        });
-
-        Schema::create('messages', function (Blueprint $table) {
-            $table->id();
-
-            $table->foreignId('sender_id')
-                ->constrained('users')
-                ->cascadeOnDelete();
-
-            $table->foreignId('receiver_id')
-                ->constrained('users')
-                ->cascadeOnDelete();
-
-            $table->text('message');
-            $table->longText('attachment')->nullable();
-            $table->timestamps();
-
-            $table->index('sender_id');
-            $table->index('receiver_id');
         });
 
         Schema::create('conversations', function (Blueprint $table) {
@@ -56,25 +38,47 @@ return new class extends Migration
             // Tin nhắn cuối cùng chung
             $table->foreignId('last_message_id')
                   ->nullable()
-                  ->constrained('messages')
                   ->nullOnDelete();
 
             // Tin nhắn cuối cùng mà user1 đã đọc / thấy
             $table->foreignId('last_message_id1')
                   ->nullable()
-                  ->constrained('messages')
                   ->nullOnDelete();
 
             // Tin nhắn cuối cùng mà user2 đã đọc / thấy
             $table->foreignId('last_message_id2')
                   ->nullable()
-                  ->constrained('messages')
                   ->nullOnDelete();
 
             $table->timestamps();
 
             $table->unique(['user1_id', 'user2_id']);
         });
+
+        Schema::create('messages', function (Blueprint $table) {
+            $table->id();
+
+            $table->foreignId('sender_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
+
+            $table->foreignId('receiver_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
+
+            $table->foreignId('conversation_id')
+                ->constrained('conversations')
+                ->cascadeOnDelete();
+
+            $table->text('message');
+            $table->longText('attachment')->nullable();
+            $table->timestamps();
+
+            $table->index('sender_id');
+            $table->index('receiver_id');
+        });
+
+
 
         DB::statement(
             'ALTER TABLE conversations

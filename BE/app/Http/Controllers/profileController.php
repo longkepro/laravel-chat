@@ -9,10 +9,12 @@ use Illuminate\Support\Facades\Hash;
 
 class profileController extends Controller
 {
-    public function updateAvatar(Request $request)
+    //chỉnh sửa hồ sơ người dùng
+    public function editProfile(Request $request)
     {
         $request->validate([
-            'avatar' => 'required|url|max:255',
+            'avatar' => 'sometimes|nullable|url|max:255|required_without:profile_name',
+            'profile_name' => 'sometimes|nullable|string|max:100|required_without:avatar',
         ]);
 
         $user = User::Auth()->user();
@@ -21,28 +23,14 @@ class profileController extends Controller
             return response()->json(['error' => 'User not found'], 404);
         }
 
-        $user->avatar = $request->input('avatar');
+        $user->avatar = $request->input('avatar', $user->avatar);
+        $user->profile_name = $request->input('profile_name', $user->profile_name);
         $user->save();
 
         return response()->json(['status' => 'Avatar updated!', 'avatar' => $user->avatar]);
     }
-    public function updateName(Request $request)
-    {
-        $request->validate([
-            'profileName' => 'required|string|max:100',
-        ]);
 
-        $user = User::Auth()->user();
-
-        if (!$user) {
-            return response()->json(['error' => 'User not found'], 404);
-        }
-
-        $user->profile_name = $request->input('profileName');
-        $user->save();
-
-        return response()->json(['status' => 'Name updated!', 'profileName' => $user->profile_name]);
-    }
+    //lấy hồ sơ người dùng
     public function getProfile($userID)
     {
         $user = User::find($userID);
@@ -58,6 +46,8 @@ class profileController extends Controller
             'avatar' => $user->avatar,
         ]);
     }
+
+    //cập nhật mật khẩu
     public function updatePassword(Request $request)
     {
         $request->validate([
@@ -77,7 +67,9 @@ class profileController extends Controller
 
         return response()->json(['status' => 'Password updated!']);
     }
-    public function searchProfiles(Request $request)
+
+    //tìm kiếm người dùng theo username hoặc profile_name
+    public function searchUsers(Request $request)
     {
         $request->validate([
             'query' => 'required|string|max:100',

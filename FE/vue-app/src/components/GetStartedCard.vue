@@ -12,26 +12,26 @@
         <span class="inline-grid place-items-center w-7 h-7 rounded-full border border-stone-200 shadow-sm">
           <span class="w-3 h-3 rounded-full bg-stone-300"></span>
         </span>
-        <p class="text-sm text-stone-700">
+        <RouterLink :to="{name: 'register'}" class="text-sm text-stone-700">
           Đăng ký
-          <a class="font-semibold text-emerald-600 hover:underline underline-offset-4" href="https://laravel.com/docs" target="_blank" rel="noreferrer">Tài khoản mới</a>
-        </p>
+          <a class="font-semibold text-emerald-600 hover:underline underline-offset-4">Tài khoản mới</a>
+        </RouterLink>
       </li>
       <li class="flex items-center gap-3">
         <span class="inline-grid place-items-center w-7 h-7 rounded-full border border-stone-200 shadow-sm">
           <span class="w-3 h-3 rounded-full bg-stone-300"></span>
         </span>
-        <p class="text-sm text-stone-700">
+        <RouterLink :to="{name: 'login'}" class="text-sm text-stone-700">
           Đăng nhập vào 
-          <a class="font-semibold text-emerald-600 hover:underline underline-offset-4" href="https://laracasts.com" target="_blank" rel="noreferrer">LongkeChat</a>
-        </p>
+          <a class="font-semibold text-emerald-600 hover:underline underline-offset-4">LongkeChat</a>
+        </RouterLink>
       </li>
     </ul>
 
     <div>
-      <a class="inline-flex items-center justify-center px-5 py-3 rounded-lg bg-emerald-600 text-white text-sm font-semibold border border-emerald-700 shadow hover:bg-emerald-700 hover:-translate-y-px hover:shadow-lg transition" href="https://cloud.laravel.com" target="_blank" rel="noreferrer">
+      <RouterLink :to="{name: 'chat'}" class="inline-flex items-center justify-center px-5 py-3 rounded-lg bg-emerald-600 text-white text-sm font-semibold border border-emerald-700 shadow hover:bg-emerald-700 hover:-translate-y-px hover:shadow-lg transition">
         Chat Ngay
-      </a>
+      </RouterLink>
     </div>
   </section>
 </template>

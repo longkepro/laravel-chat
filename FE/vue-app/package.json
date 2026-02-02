@@ -11,12 +11,17 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
+    "axios": "^1.13.4",
+    "js-cookie": "^3.0.5",
     "pinia": "^3.0.4",
     "vue": "^3.5.26",
-    "vue-router": "^4.6.4"
+    "vue-router": "^4.6.4",
+    "vue3-emoji-picker": "^1.1.8"
   },
   "devDependencies": {
+    "@iconify/vue": "^5.0.0",
     "@tsconfig/node24": "^24.0.4",
+    "@types/js-cookie": "^3.0.6",
     "@types/node": "^24.10.9",
     "@vitejs/plugin-vue": "^6.0.3",
     "@vue/tsconfig": "^0.8.1",

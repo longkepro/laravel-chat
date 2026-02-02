@@ -19,15 +19,28 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('user', fn (Request $request) => $request->user());
-    Route::post('auth/logout', [LoginController::class, 'destroy']);
-    Route::get('conversations', [ChatController::class, 'getConversationList']);
-    Route::get('conversations/{conversation}/messages', [ChatController::class, 'getMessages']);
-    Route::post('conversations/sendmessages', [ChatController::class, 'sendMessage']);
-    Route::post('conversations/create', [ChatController::class, 'createConversation']);
-    Route::get('profile/{userID}', [profileController::class, 'getProfile']);
-    Route::post('profile/updateAvatar', [profileController::class, 'updateAvatar']);
-    Route::post('profile/updateName', [profileController::class, 'updateName']);
-    Route::post('updatePassword', [profileController::class, 'updatePassword']);
-    Route::get('users/search', [profileController::class, 'searchUsers']);
+    //Route::get('user', fn (Request $request) => $request->user())->name('user');
+    Route::post('auth/logout', [LoginController::class, 'destroy'])->name('logout');
+
+    Route::get('conversations', [ChatController::class, 'getConversationList'])->name('conversations');
+
+    Route::get('conversations/{conversationID}/olderMessages/{MessageID}', [ChatController::class, 'getOlderMessages'])->name('conversations.oldermessages');
+
+    Route::get('conversations/{conversationID}/newerMessages/{MessageID}', [ChatController::class, 'getNewerMessages'])->name('conversations.newermessages');
+
+    Route::get('conversations/{conversationID}/fetchSearchMessages/{MessageID}', [ChatController::class, 'fetchSearchedMessages'])->name('conversations.fetchsearchedmessages');
+
+    Route::post('conversations/sendmessages', [ChatController::class, 'sendMessage'])->name('conversations.sendmessages');
+
+    Route::post('conversations/create', [ChatController::class, 'createConversation'])->name('conversations.create');
+
+    Route::get('profile/{userID}', [profileController::class, 'getProfile'])->name('profile.get');
+
+    Route::post('profile/editProfile', [profileController::class, 'editProfile'])->name('profile.editprofile');
+
+    Route::post('profile/updatePassword', [profileController::class, 'updatePassword'])->name('profile.updatePassword');
+
+    Route::get('search/users', [profileController::class, 'searchUsers'])->name('users.search');
+
+    Route::get('search/messages', [ChatController::class, 'searchMessages'])->name('messages.search');
 });
