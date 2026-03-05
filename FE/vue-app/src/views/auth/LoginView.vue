@@ -8,16 +8,20 @@ import FormInput from '@/components/forms/FormInput.vue'
 import FormError from '@/components/forms/FormError.vue'
 import FormButton from '@/components/forms/FormButton.vue'
 import SocialAuthButton from '@/components/forms/SocialAuthButton.vue'
+import { RouterLink } from 'vue-router'
+import { isAxiosError } from 'axios'
+import { useToast } from 'vue-toastification'
 
 const form = reactive({
   username: '',
   password: '',
 })
 
-const errors = reactive<{ username?: string; password?: string }>({})
-
 const router = useRouter()
-const authStore = useAuthStore()
+const AuthStore = useAuthStore()
+const toast = useToast()
+
+const errors = reactive<{ username?: string; password?: string }>({})
 
 const validate = () => {
   errors.username = form.username ? '' : 'Please enter your username.'
@@ -25,15 +29,37 @@ const validate = () => {
   return !errors.username && !errors.password
 }
 
-const onSubmit = () => {
-  if (!validate()) return
+async function onSubmit (){
+  if (validate()){
 
-  authStore.setAuth('demo-token', {
-    id: Date.now(),
-    username: form.username,
-  })
+    try{
+      console.log('Submitting login form with:', form)
+      console.log('API endpoint:', import.meta.env.VITE_API_BASE_URL)
+      const payload = {
+        username: form.username,
+        password: form.password,
+      }
+      await AuthStore.login(payload)
+      if(AuthStore.user){
+        toast.success('Đăng nhập thành công!')
+        router.push({ name: 'home' })
+      }
 
-  router.push({ name: 'chat' })
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 422) {
+        const errorData = error.response.data as any;
+        const errorMessage = errorData?.errors?.username?.[0] || errorData?.message || 'Đăng nhập thất bại.';
+        errors.password = errorMessage;
+        toast.error(`Đăng nhập thất bại: ${errorMessage}`);
+      } else {
+        console.error('Login error:', error)
+        toast.error('Đăng nhập thất bại. Vui lòng thử lại.')
+      }
+    }
+  }
+  else{
+    toast.error('Vui lòng điền đầy đủ thông tin.')
+  }
 }
 </script>
 
@@ -50,7 +76,7 @@ const onSubmit = () => {
         @submit.prevent="onSubmit"
       >
         <FormTitle>Sign In</FormTitle>
-
+ 
         <div class="w-4/5 space-y-1">
           <FormLabel for-id="username">
             <i class="fas fa-user mr-2"></i>User name:
@@ -81,8 +107,8 @@ const onSubmit = () => {
 
         <FormButton type="submit">Log In</FormButton>
         <div class="flex gap-4">
-          <SocialAuthButton url="/login/google" logo="../logos/google-logo-png-google-icon-logo-png-transparent-svg-vector-bie-supply-14.png" />
-          <SocialAuthButton url="/login/facebook" logo="../logos/Facebook_Logo_2023.png" />
+          <SocialAuthButton auth-provider="google" logo="../logos/google-logo-png-google-icon-logo-png-transparent-svg-vector-bie-supply-14.png" />
+          <SocialAuthButton auth-provider="facebook" logo="../logos/Facebook_Logo_2023.png" />
         </div>
         <p class="text-sm mt-4">
           Don't have an account yet?

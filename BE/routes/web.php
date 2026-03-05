@@ -15,6 +15,10 @@ use App\Http\Middleware\PreventBackHistory;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\ChatController;
+use Laravel\Sanctum\Http\Controllers\CsrfCookieController;
+
+
+Route::get('/sanctum/csrf-cookie', [CsrfCookieController::class, 'show']);
 
 Route::middleware([ PreventBackHistory::class])->group(function () {
     Route::get('/', function () {

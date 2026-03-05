@@ -1,12 +1,19 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { pushScopeId, reactive } from 'vue'
 import FormTitle from '@/components/forms/FormTitle.vue'
 import FormLabel from '@/components/forms/FormLabel.vue'
 import FormInput from '@/components/forms/FormInput.vue'
 import FormError from '@/components/forms/FormError.vue'
 import FormButton from '@/components/forms/FormButton.vue'
 import SocialAuthButton from '@/components/forms/SocialAuthButton.vue'
+import { RouterLink } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import {useRouter} from 'vue-router'
+import { useToast, toastInjectionKey } from 'vue-toastification'
 
+const router = useRouter()
+const toast = useToast()
+const AuthStore = useAuthStore()
 const form = reactive({
   username: '',
   email: '',
@@ -25,10 +32,23 @@ const validate = () => {
   return !errors.username && !errors.email && !errors.password && !errors.passwordConfirmation
 }
 
-const onSubmit = () => {
+const onSubmit = async () => {
   if (!validate()) return
-  // TODO: call register API. For now, just log values.
   console.log('submit register', { ...form })
+  try {
+    const payload = {
+      username: form.username,
+      email: form.email,
+      password: form.password,
+      password_confirmation: form.passwordConfirmation,
+    }
+    await AuthStore.register(payload)
+    toast.success('Đăng ký tài khoản thành công.')
+    router.push({ name: 'login' })
+  } catch (error) {
+    console.error('Registration error:', error)
+    toast.error('Đăng ký thất bại. Vui lòng thử lại.')
+  }
 }
 </script>
 
@@ -95,8 +115,8 @@ const onSubmit = () => {
         </div>
 
         <div class="flex gap-4">
-          <SocialAuthButton url="/login/google" logo="/logos/google-logo-png-google-icon-logo-png-transparent-svg-vector-bie-supply-14.png" />
-          <SocialAuthButton url="/login/facebook" logo="/logos/Facebook_Logo_2023.png" />
+          <SocialAuthButton auth-provider="google" logo="../logos/google-logo-png-google-icon-logo-png-transparent-svg-vector-bie-supply-14.png" />
+          <SocialAuthButton auth-provider="facebook" logo="../logos/Facebook_Logo_2023.png" />
         </div>
 
         <div class="text-sm mt-4 text-gray-700">

@@ -2,20 +2,23 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from 'vue-toastification'
 
 const router = useRouter()
-const authStore = useAuthStore()
+const AuthStore = useAuthStore()
+const toast = useToast()
 
-const isAuthenticated = computed(() => authStore.isAuthenticated)
-const displayName = computed(() => authStore.displayName)
+const isAuthenticated = computed(() => useAuthStore().isAuthenticated)
+const displayName = computed(() => useAuthStore().UserProfileName)
 
 const goProfile = () => {
   router.push({ name: 'chat' })
 }
 
 const handleLogout = () => {
-  authStore.logout()
+  AuthStore.logout()
   router.push({ name: 'home' })
+  toast.success('Đăng xuất thành công!')
 }
 </script>
 

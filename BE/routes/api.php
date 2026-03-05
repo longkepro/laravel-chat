@@ -9,13 +9,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\profileController;
 
-Route::prefix('auth')->group(function () {
+Route::prefix('auth')->middleware('web')->group(function () {
     Route::post('login', [LoginController::class, 'login']);
     Route::post('register', [RegisterController::class, 'register']);
     Route::get('google/redirect', [SocialAuthController::class, 'redirectToGoogle'])->name('api.google.redirect');
-    Route::get('google/callback', [SocialAuthController::class, 'handleGoogleCallback'])->name('api.google.callback');
     Route::get('facebook/redirect', [SocialAuthController::class, 'redirectToFaceBook'])->name('api.facebook.redirect');
+});
+Route::prefix('login')->middleware('web')->group(function () {
     Route::get('facebook/callback', [SocialAuthController::class, 'handleFaceBookCallback'])->name('api.facebook.callback');
+    Route::get('google/callback', [SocialAuthController::class, 'handleGoogleCallback'])->name('api.google.callback');
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -34,6 +36,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('conversations/create', [ChatController::class, 'createConversation'])->name('conversations.create');
 
+    Route::get('profile/authUser', [profileController::class, 'getAuthUser'])->name('profile.getauthuser');
+
     Route::get('profile/{userID}', [profileController::class, 'getProfile'])->name('profile.get');
 
     Route::post('profile/editProfile', [profileController::class, 'editProfile'])->name('profile.editprofile');
@@ -43,4 +47,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('search/users', [profileController::class, 'searchUsers'])->name('users.search');
 
     Route::get('search/messages', [ChatController::class, 'searchMessages'])->name('messages.search');
+
 });
