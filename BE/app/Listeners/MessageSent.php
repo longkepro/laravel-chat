@@ -15,7 +15,6 @@ class MessageSent implements ShouldQueue
 
     public function handle(object $event): void
     {
-        dispatch(new \App\Jobs\markAsRead($event->conversationID, $event->message->id));
         Broadcast(new MessageNotification( $event->message))->toOthers();
     }
 }

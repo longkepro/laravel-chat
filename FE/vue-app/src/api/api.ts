@@ -1,4 +1,3 @@
-import type { A } from 'vue-router/dist/router-CWoNjPRp.mjs';
 import { http } from '../api/http';
 
 //user auth interface
@@ -60,6 +59,10 @@ export interface MessageResponse {
 }
 export interface ConversationItem {
   conversation_id: number
+  user1_id: number
+  user2_id: number
+  last_message_id1: number | null
+  last_message_id2: number | null
   receiver: ConversationUser | null
   last_message: MessageResponse | null
   last_read_message_id: number | null
@@ -98,19 +101,19 @@ export interface SendMessageResponse {
   message: MessageResponse;
 }
 
+export interface SearchUserItem {
+  id: number
+  username: string
+  name: string | null
+  avatar: string | null
+}
 export interface SearchUsersResponse {
-  id: number;
-  username: string;
-  avatar: string | null; 
+  results: SearchUserItem[]
 }
 
-// export interface SearchUsersResponse {
-//   results: User[];
-// }
-
 export interface EditProfileSuccess {
-  status: string;        
-  avatar: string | null; 
+  status: string;
+  user: User;
 }
 export interface EditProfileError {
   error: string;
@@ -133,6 +136,13 @@ export interface CreateConversationResponse {
   message: MessageResponse;
 }
 
+export interface MarkReadResponse {
+  status: string;
+  conversation_id: number;
+  last_message_id1: number | null;
+  last_message_id2: number | null;
+}
+
 //-----------api object-----------
 const api = {
   //đăng ký, đăng nhập, lấy thông tin user, đăng xuất
@@ -153,11 +163,16 @@ const api = {
   },
 
   // edit profile
-  editProfile(data: { username: string; avatar: string }) {
+  editProfile(data: { profile_name?: string; avatar?: File | null }) {
     const formData = new FormData();
-    formData.append('username', data.username);
-    formData.append('avatar', data.avatar);
-  
+    if (typeof data.profile_name === 'string') {
+      formData.append('profile_name', data.profile_name);
+    }
+    if (data.avatar) {
+      formData.append('avatar', data.avatar);
+    }
+
+    // Do not set Content-Type manually; Axios will add the correct multipart boundary.
     return http.post<EditProfileResponse>('/api/profile/editProfile', formData);
   },
   updatePassword(data: { current_password: string; new_password: string; new_password_confirmation: string }) {
@@ -166,10 +181,16 @@ const api = {
 
   //chat api
   getConversations(){
-    return http.get<<PaginatedRespone<ConversationItem>>('/api/conversations');
+    return http.get<PaginatedResponse<ConversationItem>>('/api/conversations');
   },
+  // fetchSearchedMessages(conversationID: number, MessageID: number) {
+  //   return http.get<FetchSearchedMessagesResponse>(`/api/conversations/${conversationID}/fetchSearchMessages/${MessageID}`);
+  // },
   getOlderMessages(conversationID: number, MessageID: number) {
     return http.get<GetOlderMessagesResponse>(`/api/conversations/${conversationID}/olderMessages/${MessageID}`);
+  },
+  getLatestMessages(conversationID: number) {
+    return http.get<GetOlderMessagesResponse>(`/api/conversations/${conversationID}/latestMessages`);
   },
   getNewerMessages(conversationID: number, MessageID: number) {
     return http.get<GetNewerMessagesResponse>(`/api/conversations/${conversationID}/newerMessages/${MessageID}`);
@@ -180,10 +201,18 @@ const api = {
   createConversation(data: { sender_id: number; message: string; receiver_id: number }) {
     return http.post<CreateConversationResponse>('/api/conversations/create', data);
   },
+  markConversationRead(conversationID: number, messageId: number) {
+    return http.post<MarkReadResponse>(`/api/conversations/${conversationID}/read`, {
+      message_id: messageId,
+    });
+  },
 
   //search
   searchUsers(query: string) {
     return http.get<SearchUsersResponse>('/api/search/users', { params: { q: query } });
+  },
+  fetchSearchedMessages(conversationID: number, MessageID: number) {
+    return http.get<FetchSearchedMessagesResponse>(`/api/conversations/${conversationID}/fetchSearchMessages/${MessageID}`);
   },
   searchMessages(query: string) {
     return http.get<SearchMessagesResponse>(`/api/search/messages`, { params: { q: query } });

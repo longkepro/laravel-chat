@@ -31,7 +31,7 @@ class MessageNotification implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel("noitifications.{$this->message->receiver_id}"),
+            new PrivateChannel("notifications.{$this->message->receiver_id}"),
         ];
     }
     public function broadcastAs()

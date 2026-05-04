@@ -136,6 +136,7 @@ class SocialAuthController extends Controller
     {
          return Socialite::driver('facebook')
             ->stateless()
+            ->fields(['id', 'name', 'email', 'picture.type(large)'])
             ->with(['prompt' => 'select_account'])
             ->redirectUrl(route('api.facebook.callback'))
             ->redirect();
@@ -185,6 +186,8 @@ class SocialAuthController extends Controller
             ->user();//bỏ qua được, Intelephense đoán kiểu trả về là Laravel\Socialite\Contracts\Provider, tức là interface: nên sẽ báo lỗi stateless(), nhưng PHP không cần biết kiểu trả về tại thời điểm biên dịch như Java/C#. Miễn là object thực sự có method stateless() thì PHP vẫn chạy tốt.
             //dd($googleUser);
             $user = User::where('email', $facebookUser->getEmail())->first();
+            $defaultAvatar = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+            $avatar = $facebookUser->getAvatar() ?: $defaultAvatar;
 
             if (!$user) {
                 $user = User::create([
@@ -192,9 +195,12 @@ class SocialAuthController extends Controller
                     'email'        => $facebookUser->getEmail(),
                     'profile_name' => $facebookUser->getName() ?? $facebookUser->getEmail(),
                     'facebook_id'  => $facebookUser->getId(),
-                    'avatar'       => $facebookUser->getAvatar(),
+                    'avatar'       => $avatar,
                     'password'     => bcrypt(Str::random(16)),
                 ]);
+            } elseif (!$user->avatar) {
+                $user->avatar = $avatar;
+                $user->save();
             }
 
             Auth::login($user); // Bỏ 'true' vì bảng users không có column remember_token

@@ -12,7 +12,7 @@ export const useAuthStore = defineStore('auth', () =>{
 
   const isAuthenticated = computed(() => user.value !== null);
   const UserAvatar = computed(() => user.value?.avatar);
-  const UserProfileName = computed(() => user.value?.name);
+  const UserProfileName = computed(() => user.value?.name ?? user.value?.username);
   const Useremail = computed(() => user.value?.email);
 
   // Luôn fetch user mới nhất từ server (dùng sau login/oauth)
@@ -106,6 +106,9 @@ export const useAuthStore = defineStore('auth', () =>{
         throw error;
       } finally {
         user.value = null;
+        // Reset toàn bộ trạng thái chat (danh sách conversation, tin nhắn, channel Echo…)
+        const { useChatStore } = await import('@/stores/chat');
+        useChatStore().reset();
       }
   }
 

@@ -60,6 +60,27 @@ return [
             'report' => false,
         ],
 
+        'cloudinary' => [
+            'driver' => 'cloudinary',
+            // If CLOUDINARY_URL is set, the package will use it.
+            // Otherwise we build it from the repo's env vars.
+            'url' => env(
+                'CLOUDINARY_URL',
+                'cloudinary://'
+                    . trim((string) env('CLOUDINARY_API_KEY', env('CLOUDINARY_KEY', '')))
+                    . ':'
+                    . trim((string) env('CLOUDINARY_API_SECRET', env('CLOUDINARY_SECRET', '')))
+                    . '@'
+                    . trim((string) env('CLOUDINARY_CLOUD_NAME', ''))
+            ),
+
+            // Fallback config (used when url is null in some setups)
+            'cloud' => trim((string) env('CLOUDINARY_CLOUD_NAME', '')),
+            'key' => trim((string) env('CLOUDINARY_API_KEY', env('CLOUDINARY_KEY', ''))),
+            'secret' => trim((string) env('CLOUDINARY_API_SECRET', env('CLOUDINARY_SECRET', ''))),
+            'secure' => true,
+        ],
+
     ],
 
     /*

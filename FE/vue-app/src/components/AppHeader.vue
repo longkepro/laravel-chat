@@ -12,7 +12,7 @@ const isAuthenticated = computed(() => useAuthStore().isAuthenticated)
 const displayName = computed(() => useAuthStore().UserProfileName)
 
 const goProfile = () => {
-  router.push({ name: 'chat' })
+  router.push({ name: 'profile' })
 }
 
 const handleLogout = () => {

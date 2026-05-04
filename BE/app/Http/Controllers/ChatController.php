@@ -9,11 +9,10 @@ use Laravel\Pail\ValueObjects\Origin\Console;
 use App\Models\Conversation;
 use App\Models\Message;
 use Illuminate\Support\Facades\Auth;
-use App\Models\MessageRead;
+use App\Events\MessageRead;
 
 class ChatController extends Controller
 {
-
     //gửi tin nhắn
     public function sendMessage(Request $request)
     {
@@ -47,6 +46,7 @@ class ChatController extends Controller
     // Lấy tin nhắn cũ hơn (Load Previous - Kéo lên trên)
     public function getOlderMessages($conversationID, $MessageID = null)
     {
+    // Nếu MessageID là null, sẽ trả về 20 tin nhắn mới nhất của cuộc trò chuyện
         $query = Message::where('conversation_id', $conversationID);
 
         if ($MessageID) {
@@ -54,7 +54,7 @@ class ChatController extends Controller
         }
 
         $messages = $query->orderBy('id', 'desc') // Lấy những tin sát mốc thời gian nhất
-                        ->limit(20)             
+                        ->limit(20)
                         ->get();
 
 
@@ -64,10 +64,10 @@ class ChatController extends Controller
     // Lấy tin nhắn mới hơn (Load Next - Kéo xuống dưới)
     public function getNewerMessages($conversationID, $MessageID)
     {
-        
+
         $messages = Message::where('conversation_id', $conversationID)
             ->where('id', '>', $MessageID)
-            ->orderBy('id', 'asc') 
+            ->orderBy('id', 'asc')
             ->limit(20)
             ->get();
 
@@ -98,6 +98,10 @@ class ChatController extends Controller
 
             return [
                 'conversation_id' => $conversation->id,
+                'user1_id' => $conversation->user1_id,
+                'user2_id' => $conversation->user2_id,
+                'last_message_id1' => $conversation->last_message_id1,
+                'last_message_id2' => $conversation->last_message_id2,
                 'receiver' => $receiver ? [
                     'id' => $receiver->id,
                     'username' => $receiver->username,
@@ -209,6 +213,59 @@ class ChatController extends Controller
                 ->values(),
             'has_older' => $older->count() === 10,
             'has_newer' => $newer->count() === 10,
+        ]);
+    }
+
+    // Đánh dấu đã đọc theo message đang được hiển thị
+    public function markAsRead(Request $request, $conversationID)
+    {
+        $request->validate([
+            'message_id' => 'required|integer',
+        ]);
+
+        $userId = Auth::id();
+        $conversation = Conversation::findOrFail($conversationID);
+
+        if ($conversation->user1_id !== $userId && $conversation->user2_id !== $userId) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        $messageId = (int) $request->input('message_id');
+        $messageExists = Message::where('id', $messageId)
+            ->where('conversation_id', $conversationID)
+            ->exists();
+
+        if (!$messageExists) {
+            return response()->json(['error' => 'Invalid message'], 422);
+        }
+
+        $updates = [];
+        if ($conversation->user1_id === $userId) {
+            if (empty($conversation->last_message_id1) || $messageId > $conversation->last_message_id1) {
+                $updates['last_message_id1'] = $messageId;
+            }
+        } else {
+            if (empty($conversation->last_message_id2) || $messageId > $conversation->last_message_id2) {
+                $updates['last_message_id2'] = $messageId;
+            }
+        }
+
+        if (!empty($updates)) {
+            Conversation::where('id', $conversationID)->update($updates);
+            $conversation->refresh();
+            broadcast(new MessageRead(
+                $conversationID,
+                $userId,
+                $conversation->last_message_id1,
+                $conversation->last_message_id2
+            ))->toOthers();
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'conversation_id' => $conversationID,
+            'last_message_id1' => $conversation->last_message_id1,
+            'last_message_id2' => $conversation->last_message_id2,
         ]);
     }
 

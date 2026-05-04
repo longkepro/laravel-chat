@@ -56,4 +56,27 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function getAvatarAttribute($value)
+    {
+        if (!$value) {
+            return $value;
+        }
+
+        // Keep absolute URLs as-is
+        if (filter_var($value, FILTER_VALIDATE_URL)) {
+            return $value;
+        }
+
+        // Convert relative paths to absolute URLs based on APP_URL
+        if (is_string($value)) {
+            if (str_starts_with($value, '/')) {
+                return url($value);
+            }
+
+            return url('/' . $value);
+        }
+
+        return $value;
+    }
 }

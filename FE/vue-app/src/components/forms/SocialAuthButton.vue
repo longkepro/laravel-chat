@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, useAttrs } from 'vue'
-import { useAuthStore } from '@/stores/auth';
-import { f } from 'vue-router/dist/router-CWoNjPRp.mjs';
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{
   authProvider: string

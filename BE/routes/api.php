@@ -26,11 +26,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('conversations', [ChatController::class, 'getConversationList'])->name('conversations');
 
+    Route::get('conversations/{conversationID}/latestMessages', [ChatController::class, 'getOlderMessages'])->name('conversations.latestmessages');
+
     Route::get('conversations/{conversationID}/olderMessages/{MessageID}', [ChatController::class, 'getOlderMessages'])->name('conversations.oldermessages');
 
     Route::get('conversations/{conversationID}/newerMessages/{MessageID}', [ChatController::class, 'getNewerMessages'])->name('conversations.newermessages');
 
     Route::get('conversations/{conversationID}/fetchSearchMessages/{MessageID}', [ChatController::class, 'fetchSearchedMessages'])->name('conversations.fetchsearchedmessages');
+
+    Route::post('conversations/{conversationID}/read', [ChatController::class, 'markAsRead'])->name('conversations.read');
 
     Route::post('conversations/sendmessages', [ChatController::class, 'sendMessage'])->name('conversations.sendmessages');
 

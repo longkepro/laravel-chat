@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage; // Cần để lưu ảnh avatar
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class ProfileController extends Controller
 {
@@ -56,8 +56,7 @@ class ProfileController extends Controller
 
         // Validate
         $request->validate([
-            // Cho phép avatar là File ảnh (jpeg, png...) HOẶC là chuỗi String (nếu giữ nguyên link cũ)
-            'avatar' => 'nullable',
+            'avatar' => 'nullable|image|max:5120',
             'profile_name' => 'nullable|string|max:100',
         ]);
 
@@ -68,14 +67,32 @@ class ProfileController extends Controller
 
         // Xử lý Upload Avatar
         if ($request->hasFile('avatar')) {
-            // 1. Xóa ảnh cũ nếu không phải ảnh mặc định (Optional)
-            // if ($user->avatar && Storage::exists($user->avatar)) { ... }
+            try {
+                $tmpPath = $request->file('avatar')->getRealPath() ?: $request->file('avatar')->getPathname();
+                $uploaded = Cloudinary::uploadApi()->upload(
+                    $tmpPath,
+                    [
+                        'folder' => 'avatars',
+                        'public_id' => 'user_' . $user->id,
+                        'overwrite' => true,
+                        'invalidate' => true,
+                    ]
+                );
 
-            // 2. Lưu ảnh mới vào thư mục 'avatars' trong storage/app/public
-            $path = $request->file('avatar')->store('avatars', 'public');
+                // DB chỉ lưu URL của ảnh trên Cloudinary
+                $user->avatar = $uploaded['secure_url'] ?? null;
 
-            // 3. Tạo đường dẫn URL (ví dụ: /storage/avatars/abc.jpg)
-            $user->avatar = '/storage/' . $path;
+                if (!$user->avatar) {
+                    return response()->json([
+                        'error' => 'Upload avatar thất bại.',
+                    ], 500);
+                }
+            } catch (\Throwable $e) {
+                report($e);
+                return response()->json([
+                    'error' => 'Upload avatar thất bại.',
+                ], 500);
+            }
         }
 
         $user->save();

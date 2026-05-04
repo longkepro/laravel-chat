@@ -16,9 +16,11 @@ const props = withDefaults(
   defineProps<{
     user: User
     selected?: boolean
+    isOnline?: boolean
   }>(),
   {
     selected: false,
+    isOnline: false,
   }
 )
 
@@ -48,8 +50,15 @@ const avatarSrc = computed(
 
 <template>
   <div :class="classes" @click="emit('select', props.user)">
-    <div class="w-14 h-14 rounded-2xl overflow-hidden bg-gray-200">
-      <img :src="avatarSrc" class="w-full h-full object-cover" alt="" />
+    <div class="relative w-14 h-14 flex-shrink-0">
+      <div class="w-full h-full rounded-2xl overflow-hidden bg-gray-200">
+        <img :src="avatarSrc" class="w-full h-full object-cover" alt="" />
+      </div>
+      <!-- Chấm online -->
+      <span
+        v-if="props.isOnline"
+        class="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white shadow-sm"
+      ></span>
     </div>
 
     <div class="flex-1 flex justify-between items-center gap-3">

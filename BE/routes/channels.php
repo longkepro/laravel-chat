@@ -9,8 +9,14 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
-Broadcast::channel('chat.{conversationId}', function ($conversation, $conversationId) {
-    return (int) $conversation->id === (int) $conversationId;
+Broadcast::channel('chat.{conversationId}', function ($user, $conversationId) {
+    $isMember = Conversation::where('id', $conversationId)
+        ->where(function ($q) use ($user) {
+            $q->where('user1_id', $user->id)
+              ->orWhere('user2_id', $user->id);
+        })->exists();
+
+    return $isMember ? ['id' => $user->id, 'username' => $user->username, 'avatar' => $user->avatar] : false;
 });
 
 Broadcast::channel('notifications.{receiverID}', function ($user, $receiverId) {
@@ -29,5 +35,9 @@ Broadcast::channel('online', function ($user) {
     // Nếu trả về null hoặc false -> Từ chối kết nối (403 Forbidden)
 });
 Broadcast::channel('typing.{conversationId}', function ($user, $conversationId) {
-    return (int) $user->id === (int) $conversationId;
+    return Conversation::where('id', $conversationId)
+        ->where(function ($q) use ($user) {
+            $q->where('user1_id', $user->id)
+              ->orWhere('user2_id', $user->id);
+        })->exists();
 });
