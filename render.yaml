@@ -3,15 +3,10 @@ services:
     name: laravel-be
     env: docker
     plan: free
-    dockerfilePath: BE/Dockerfile
-    dockerContext: .
+    region: singapore
+    rootDir: BE
+    dockerfilePath: Dockerfile
     autoDeploy: true
+    envVars:
+      - fromGroup: laravel-chat-secrets
 
-  - type: worker
-    name: laravel-queue
-    env: docker
-    plan: free
-    dockerfilePath: BE/Dockerfile
-    dockerContext: .
-    dockerCommand: php artisan queue:work --sleep=3 --tries=3 --timeout=90
-    autoDeploy: true
