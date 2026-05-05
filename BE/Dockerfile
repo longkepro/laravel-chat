@@ -1,5 +1,15 @@
 FROM composer:2 AS vendor
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        git \
+        unzip \
+        libcurl4-openssl-dev \
+        libicu-dev \
+        libonig-dev \
+        libzip-dev \
+    && docker-php-ext-install curl intl mbstring zip \
+    && rm -rf /var/lib/apt/lists/*
 COPY . ./
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
@@ -10,9 +20,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         git \
         unzip \
+        libcurl4-openssl-dev \
+        libicu-dev \
+        libonig-dev \
         libzip-dev \
         libpq-dev \
-    && docker-php-ext-install pdo_mysql pdo_pgsql zip \
+    && docker-php-ext-install curl intl mbstring pdo_mysql pdo_pgsql zip \
     && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 
