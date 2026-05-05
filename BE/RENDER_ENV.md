@@ -1,0 +1,60 @@
+# Render env setup (BE)
+
+Use this as a checklist for the BE service on Render.
+
+## Required (always)
+
+APP_ENV=production
+APP_DEBUG=false
+APP_KEY=base64:YOUR_APP_KEY
+APP_URL=https://your-be.onrender.com
+LOG_CHANNEL=stderr
+
+## Database
+
+### MySQL (example)
+DB_CONNECTION=mysql
+DB_HOST=YOUR_DB_HOST
+DB_PORT=3306
+DB_DATABASE=YOUR_DB_NAME
+DB_USERNAME=YOUR_DB_USER
+DB_PASSWORD=YOUR_DB_PASS
+
+### Postgres (example)
+DB_CONNECTION=pgsql
+DB_HOST=YOUR_DB_HOST
+DB_PORT=5432
+DB_DATABASE=YOUR_DB_NAME
+DB_USERNAME=YOUR_DB_USER
+DB_PASSWORD=YOUR_DB_PASS
+
+## Sessions / Queue
+
+SESSION_DRIVER=database
+QUEUE_CONNECTION=database
+CACHE_STORE=database
+SESSION_SAME_SITE=none
+SESSION_SECURE_COOKIE=true
+
+## CORS / Sanctum (FE on a different domain)
+
+CORS_ALLOWED_ORIGINS=https://your-fe.onrender.com
+SANCTUM_STATEFUL_DOMAINS=your-fe.onrender.com
+SESSION_DOMAIN=
+
+## Real-time (Pusher)
+
+PUSHER_APP_ID=YOUR_PUSHER_APP_ID
+PUSHER_APP_KEY=YOUR_PUSHER_APP_KEY
+PUSHER_APP_SECRET=YOUR_PUSHER_APP_SECRET
+PUSHER_APP_CLUSTER=YOUR_PUSHER_APP_CLUSTER
+
+## Cloudinary (if used)
+
+CLOUDINARY_CLOUD_NAME=YOUR_CLOUD_NAME
+CLOUDINARY_API_KEY=YOUR_API_KEY
+CLOUDINARY_API_SECRET=YOUR_API_SECRET
+
+## Deploy hooks
+
+RUN_MIGRATIONS=true
