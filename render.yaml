@@ -8,5 +8,5 @@ services:
     dockerfilePath: Dockerfile
     autoDeploy: true
     envVars:
-      - fromGroup: laravel-chat-secrets
+      - fromGroup: LongKeChat-secret
 
