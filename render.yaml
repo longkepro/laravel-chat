@@ -8,5 +8,5 @@ services:
     dockerfilePath: Dockerfile
     autoDeploy: true
     envVars:
-      - fromGroup: LongKeChat-secret
+      - fromGroup: LongKeChat
 
