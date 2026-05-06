@@ -10,3 +10,12 @@ services:
     envVars:
       - fromGroup: LongKeChat
 
+  - type: web
+    name: laravel-fe
+    env: static
+    rootDir: FE/vue-app
+    autoDeploy: true
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - fromGroup: LongKeChat-FE
