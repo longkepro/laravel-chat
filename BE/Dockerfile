@@ -16,6 +16,12 @@ RUN apt-get update \
 COPY . ./
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
+FROM node:20 AS node-build
+WORKDIR /app
+COPY . ./
+RUN npm ci
+RUN npm run build
+
 FROM php:8.2-apache
 WORKDIR /var/www/html
 
@@ -36,6 +42,7 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e "s!/var/www/html!${APACHE_DOCUMENT_ROOT}!g" /etc/apache2/sites-available/000-default.conf /etc/apache2/apache2.conf
 
 COPY --from=vendor /app /var/www/html
+COPY --from=node-build /app/public/build /var/www/html/public/build
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
