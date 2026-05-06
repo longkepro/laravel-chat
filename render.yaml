@@ -1,3 +1,4 @@
+
 services:
   - type: web
     name: laravel-be
@@ -15,22 +16,11 @@ services:
     env: static
     rootDir: FE/vue-app
     autoDeploy: true
-    buildCommand: npm ci && npm run build
+    buildCommand: VITE_API_BASE_URL=${VITE_API_BASE_URL} npm ci && npm run build
     staticPublishPath: dist
     envVars:
       - fromGroup: LongKeChat-FE
     routes:
-      # 1. Chuyển hướng âm thầm mọi request /api sang Backend
-      - type: rewrite
-        source: /api/*
-        destination: https://laravel-be.onrender.com/api/*
-      
-      # 2. Chuyển hướng âm thầm mọi request /sanctum sang Backend
-      - type: rewrite
-        source: /sanctum/*
-        destination: https://laravel-be.onrender.com/sanctum/*
-        
-      # 3. Luật dành cho Vue Router (Phải để cuối cùng)
       - type: rewrite
         source: /*
         destination: /index.html
