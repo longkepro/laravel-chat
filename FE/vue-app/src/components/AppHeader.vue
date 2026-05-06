@@ -1,25 +1,25 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { useToast } from 'vue-toastification'
+import { computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import { useToast } from 'vue-toastification';
 
-const router = useRouter()
-const AuthStore = useAuthStore()
-const toast = useToast()
+const router = useRouter();
+const authStore = useAuthStore();
+const toast = useToast();
 
-const isAuthenticated = computed(() => useAuthStore().isAuthenticated)
-const displayName = computed(() => useAuthStore().UserProfileName)
+const isAuthenticated = computed(() => authStore.isAuthenticated);
+const displayName = computed(() => authStore.UserProfileName);
 
 const goProfile = () => {
-  router.push({ name: 'profile' })
-}
+  router.push({ name: 'profile' });
+};
 
-const handleLogout = () => {
-  AuthStore.logout()
-  router.push({ name: 'home' })
-  toast.success('Đăng xuất thành công!')
-}
+const handleLogout = async () => {
+  await authStore.logout();
+  router.push({ name: 'home' });
+  toast.success('Đăng xuất thành công!');
+};
 </script>
 
 <template>

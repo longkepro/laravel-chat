@@ -3,41 +3,42 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rules\Password as RulesPassword;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password as RulesPassword;
 
 class RegisterController extends Controller
 {
-    // public function showRegisterForm()
-    // {
-    //     return view('auth.register');
-    // }
-
-    public function Register(Request $request)
+    public function register(Request $request)
     {
-        //$credentials = $request->only('username','email', 'password','password_confirmation');
+        $attributes = $request->validate([
+            'username' => 'required|string|max:255|unique:users,username',
+            'email' => 'required|email|max:255|unique:users,email',
+            'password' => ['required', 'string', RulesPassword::default(), 'confirmed'],
+        ]);
 
-        $request->validate([
-                'username' => 'required|string',
-                'password' => ['required', 'string',RulesPassword::default(),'confirmed'],
-                'email' => 'required|email|'
-            ]);
+        $user = User::create([
+            'username' => $attributes['username'],
+            'email' => $attributes['email'],
+            'password' => Hash::make($attributes['password']),
+            'profile_name' => $attributes['username'],
+            'avatar' => 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y',
+        ]);
 
-        $attributes = $request->only('username','email', 'password');
-        $attributes['password'] = Hash::make($attributes['password']);
-        $attributes['profile_name'] = $request->username;
-        $attributes['avatar'] = 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
-        User::create($attributes);
+        $token = $user->createToken('auth-token')->plainTextToken;
 
-        // //log in
-        // Auth::login($user);
-
-        // //redirect
-        // return redirect('/');
-        return response()->json(['status' => 'User Registered!']);
-
+        return response()->json([
+            'status' => 'User registered!',
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'user' => [
+                'id' => $user->id,
+                'username' => $user->username,
+                'name' => $user->profile_name,
+                'email' => $user->email,
+                'avatar' => $user->avatar,
+            ],
+        ], 201);
     }
 }

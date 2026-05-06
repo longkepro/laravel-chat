@@ -2,12 +2,13 @@
 
 Use this as a checklist for the BE service on Render.
 
-## Required (always)
+## Required
 
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=base64:YOUR_APP_KEY
 APP_URL=https://your-be.onrender.com
+FRONTEND_URL=https://your-fe.onrender.com
 LOG_CHANNEL=stderr
 
 ## Database
@@ -28,22 +29,16 @@ DB_DATABASE=YOUR_DB_NAME
 DB_USERNAME=YOUR_DB_USER
 DB_PASSWORD=YOUR_DB_PASS
 
-## Sessions / Queue
+## API / Token auth
 
 SESSION_DRIVER=database
 QUEUE_CONNECTION=database
 CACHE_STORE=database
-SESSION_SAME_SITE=none
-SESSION_SECURE_COOKIE=true
-
-## CORS / Sanctum (FE on a different domain)
-
 CORS_ALLOWED_ORIGINS=https://your-fe.onrender.com
-SANCTUM_STATEFUL_DOMAINS=your-fe.onrender.com
-SESSION_DOMAIN=
 
 ## Real-time (Pusher)
 
+BROADCAST_DRIVER=pusher
 PUSHER_APP_ID=YOUR_PUSHER_APP_ID
 PUSHER_APP_KEY=YOUR_PUSHER_APP_KEY
 PUSHER_APP_SECRET=YOUR_PUSHER_APP_SECRET
@@ -54,6 +49,16 @@ PUSHER_APP_CLUSTER=YOUR_PUSHER_APP_CLUSTER
 CLOUDINARY_CLOUD_NAME=YOUR_CLOUD_NAME
 CLOUDINARY_API_KEY=YOUR_API_KEY
 CLOUDINARY_API_SECRET=YOUR_API_SECRET
+
+## Social auth (if used)
+
+GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET=YOUR_GOOGLE_CLIENT_SECRET
+GOOGLE_REDIRECT_URI=https://your-be.onrender.com/api/auth/google/callback
+
+FACEBOOK_CLIENT_ID=YOUR_FACEBOOK_CLIENT_ID
+FACEBOOK_CLIENT_SECRET=YOUR_FACEBOOK_CLIENT_SECRET
+FACEBOOK_REDIRECT_URI=https://your-be.onrender.com/api/auth/facebook/callback
 
 ## Deploy hooks
 

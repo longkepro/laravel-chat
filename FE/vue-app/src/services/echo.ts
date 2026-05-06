@@ -1,6 +1,7 @@
-import Echo from 'laravel-echo'
-import Pusher from 'pusher-js'
-import axios from 'axios'
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
+import axios from 'axios';
+import { getAuthToken } from '@/lib/auth-token';
 
 declare global {
   interface Window {
@@ -10,7 +11,7 @@ declare global {
   }
 }
 
-window.Pusher = Pusher
+window.Pusher = Pusher;
 
 const echo = new Echo({
   broadcaster: 'pusher',
@@ -20,20 +21,25 @@ const echo = new Echo({
   wsPort: import.meta.env.VITE_PUSHER_PORT ? Number(import.meta.env.VITE_PUSHER_PORT) : undefined,
   forceTLS: (import.meta.env.VITE_PUSHER_SCHEME ?? 'https') === 'https',
   enabledTransports: ['ws', 'wss'],
-
-  // Dùng axios thay XHR mặc định để tự động gửi cookie session + XSRF token
   authorizer: (channel: { name: string }) => ({
     authorize: (socketId, callback) => {
+      const token = getAuthToken();
+
       axios
         .post(
           `${import.meta.env.VITE_API_BASE_URL}/broadcasting/auth`,
           { socket_id: socketId, channel_name: channel.name },
-          { withCredentials: true },
+          {
+            headers: {
+              Accept: 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          },
         )
         .then((res) => callback(null, res.data))
-        .catch((err) => callback(err, null))
+        .catch((err) => callback(err, null));
     },
   }),
-})
+});
 
-export default echo
+export default echo;

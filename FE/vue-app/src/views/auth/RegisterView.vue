@@ -1,55 +1,84 @@
 <script setup lang="ts">
-import { pushScopeId, reactive } from 'vue'
-import FormTitle from '@/components/forms/FormTitle.vue'
-import FormLabel from '@/components/forms/FormLabel.vue'
-import FormInput from '@/components/forms/FormInput.vue'
-import FormError from '@/components/forms/FormError.vue'
-import FormButton from '@/components/forms/FormButton.vue'
-import SocialAuthButton from '@/components/forms/SocialAuthButton.vue'
-import { RouterLink } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import {useRouter} from 'vue-router'
-import { useToast, toastInjectionKey } from 'vue-toastification'
+import { reactive } from 'vue';
+import { RouterLink, useRouter } from 'vue-router';
+import { isAxiosError } from 'axios';
+import { useToast } from 'vue-toastification';
+import { useAuthStore } from '@/stores/auth';
+import FormButton from '@/components/forms/FormButton.vue';
+import FormError from '@/components/forms/FormError.vue';
+import FormInput from '@/components/forms/FormInput.vue';
+import FormLabel from '@/components/forms/FormLabel.vue';
+import FormTitle from '@/components/forms/FormTitle.vue';
+import SocialAuthButton from '@/components/forms/SocialAuthButton.vue';
 
-const router = useRouter()
-const toast = useToast()
-const AuthStore = useAuthStore()
+const router = useRouter();
+const toast = useToast();
+const authStore = useAuthStore();
+
 const form = reactive({
   username: '',
   email: '',
   password: '',
   passwordConfirmation: '',
-})
+});
 
-const errors = reactive<{ username?: string; email?: string; password?: string; passwordConfirmation?: string }>({})
+const errors = reactive<{ username?: string; email?: string; password?: string; passwordConfirmation?: string }>({});
 
 const validate = () => {
-  errors.username = form.username ? '' : 'Please enter a username.'
-  errors.email = form.email && /.+@.+\..+/.test(form.email) ? '' : 'Please enter a valid email.'
-  errors.password = form.password ? '' : 'Please enter a password.'
-  errors.passwordConfirmation =
-    form.passwordConfirmation === form.password ? '' : 'Passwords do not match.'
-  return !errors.username && !errors.email && !errors.password && !errors.passwordConfirmation
-}
+  errors.username = form.username ? '' : 'Please enter a username.';
+  errors.email = form.email && /.+@.+\..+/.test(form.email) ? '' : 'Please enter a valid email.';
+  errors.password = form.password ? '' : 'Please enter a password.';
+  errors.passwordConfirmation = form.passwordConfirmation === form.password ? '' : 'Passwords do not match.';
+
+  return !errors.username && !errors.email && !errors.password && !errors.passwordConfirmation;
+};
 
 const onSubmit = async () => {
-  if (!validate()) return
-  console.log('submit register', { ...form })
+  if (!validate()) return;
+
+  // Clear previous errors
+  errors.username = '';
+  errors.email = '';
+  errors.password = '';
+  errors.passwordConfirmation = '';
+
   try {
-    const payload = {
+    await authStore.register({
       username: form.username,
       email: form.email,
       password: form.password,
       password_confirmation: form.passwordConfirmation,
+    });
+
+    toast.success('Đăng ký tài khoản thành công.');
+    router.push({ name: 'home' });
+  } catch (error: unknown) {
+    if (isAxiosError(error) && error.response?.status === 422) {
+      const errorData = error.response.data as { errors?: Record<string, string[]>; message?: string };
+      
+      // Populate validation errors from API
+      if (errorData?.errors) {
+        if (errorData.errors.username) {
+          errors.username = errorData.errors.username[0];
+        }
+        if (errorData.errors.email) {
+          errors.email = errorData.errors.email[0];
+        }
+        if (errorData.errors.password) {
+          errors.password = errorData.errors.password[0];
+        }
+      }
+      
+      // Show error toast
+      const errorMessage = Object.values(errors).find(e => e) || errorData?.message || 'Đăng ký thất bại.';
+      toast.error(`Đăng ký thất bại: ${errorMessage}`);
+      return;
     }
-    await AuthStore.register(payload)
-    toast.success('Đăng ký tài khoản thành công.')
-    router.push({ name: 'login' })
-  } catch (error) {
-    console.error('Registration error:', error)
-    toast.error('Đăng ký thất bại. Vui lòng thử lại.')
+
+    console.error('Registration error:', error);
+    toast.error('Đăng ký thất bại. Vui lòng thử lại.');
   }
-}
+};
 </script>
 
 <template>
@@ -70,7 +99,7 @@ const onSubmit = async () => {
           <FormLabel for-id="username">
             <i class="fas fa-user mr-1"></i> Username:
           </FormLabel>
-          <FormInput id="username" name="username" type="text" v-model="form.username" autocomplete="username" />
+          <FormInput id="username" v-model="form.username" name="username" type="text" autocomplete="username" />
           <FormError :message="errors.username" />
         </div>
 
@@ -78,7 +107,7 @@ const onSubmit = async () => {
           <FormLabel for-id="email">
             <i class="fas fa-envelope mr-1"></i> Email:
           </FormLabel>
-          <FormInput id="email" name="email" type="email" v-model="form.email" autocomplete="email" />
+          <FormInput id="email" v-model="form.email" name="email" type="email" autocomplete="email" />
           <FormError :message="errors.email" />
         </div>
 
@@ -88,9 +117,9 @@ const onSubmit = async () => {
           </FormLabel>
           <FormInput
             id="password"
+            v-model="form.password"
             name="password"
             type="password"
-            v-model="form.password"
             autocomplete="new-password"
           />
           <FormError :message="errors.password" />
@@ -102,9 +131,9 @@ const onSubmit = async () => {
           </FormLabel>
           <FormInput
             id="password_confirmation"
+            v-model="form.passwordConfirmation"
             name="password_confirmation"
             type="password"
-            v-model="form.passwordConfirmation"
             autocomplete="new-password"
           />
           <FormError :message="errors.passwordConfirmation" />
@@ -121,7 +150,7 @@ const onSubmit = async () => {
 
         <div class="text-sm mt-4 text-gray-700">
           Already have an account?
-          <RouterLink  :to="{name :'login'}" class="text-blue-500 hover:underline">Log in</RouterLink>
+          <RouterLink :to="{ name: 'login' }" class="text-blue-500 hover:underline">Log in</RouterLink>
         </div>
       </form>
     </div>

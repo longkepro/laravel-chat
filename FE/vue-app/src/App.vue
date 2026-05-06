@@ -3,11 +3,14 @@ import { RouterView } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { hasAuthToken } from '@/lib/auth-token'
 
 const authStore = useAuthStore();
 
 onMounted(async () => {
-  await authStore.fetchUser();
+  if (hasAuthToken()) {
+    await authStore.fetchUserIfNeeded();
+  }
 });
 </script>
 

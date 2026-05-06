@@ -2,68 +2,71 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\User;
-use Illuminate\Http\Request;
-use Laravel\Pail\ValueObjects\Origin\Console;
+use App\Events\MessageRead;
 use App\Models\Conversation;
 use App\Models\Message;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Events\MessageRead;
 
 class ChatController extends Controller
 {
-    //gửi tin nhắn
     public function sendMessage(Request $request)
     {
-        $rules = [
-            'sender_id' => 'required|exists:users,id',
+        $userId = $request->user()->id;
+
+        $payload = $request->validate([
             'conversation_id' => 'required|exists:conversations,id',
             'message' => 'required|string|max:255',
             'attachment' => 'nullable|url|max:255',
-        ];
-
-        $request->validate($rules);
-        $conversation = Conversation::findOrFail($request->input('conversation_id'));
-        $receiverId = $conversation->user1_id == $request->input('sender_id') ? $conversation->user2_id : $conversation->user1_id;
-
-        $message = Message::create([
-            'sender_id' => $request->input('sender_id'),
-            'receiver_id' => $receiverId,
-            'message' => $request->input('message'),
-            'conversation_id' => $request->input('conversation_id'),
-            'attachment' => $request->input('attachments') ?? null,
         ]);
 
-        broadcast(new \App\Events\MessageSent(
-            $request->input('conversation_id'),
-            $message
-            ))->toOthers();
+        $conversation = Conversation::findOrFail($payload['conversation_id']);
 
-        return response()->json(['status' => 'Message Sent!', 'message' => $message]);
+        if ($conversation->user1_id !== $userId && $conversation->user2_id !== $userId) {
+            return response()->json(['error' => 'Forbidden'], 403);
+        }
+
+        $receiverId = $conversation->user1_id === $userId
+            ? $conversation->user2_id
+            : $conversation->user1_id;
+
+        $message = Message::create([
+            'sender_id' => $userId,
+            'receiver_id' => $receiverId,
+            'message' => $payload['message'],
+            'conversation_id' => $payload['conversation_id'],
+            'attachment' => $payload['attachment'] ?? null,
+        ]);
+
+        broadcast(new \App\Events\MessageSent($payload['conversation_id'], $message))->toOthers();
+
+        return response()->json([
+            'status' => 'Message sent!',
+            'message' => $message,
+        ]);
     }
 
-    // Lấy tin nhắn cũ hơn (Load Previous - Kéo lên trên)
-    public function getOlderMessages($conversationID, $MessageID = null)
+    public function getOlderMessages(Request $request, $conversationID, $MessageID = null)
     {
-    // Nếu MessageID là null, sẽ trả về 20 tin nhắn mới nhất của cuộc trò chuyện
+        $this->ensureConversationMember($request->user()->id, (int) $conversationID);
+
         $query = Message::where('conversation_id', $conversationID);
 
         if ($MessageID) {
             $query->where('id', '<', $MessageID);
         }
 
-        $messages = $query->orderBy('id', 'desc') // Lấy những tin sát mốc thời gian nhất
-                        ->limit(20)
-                        ->get();
-
+        $messages = $query
+            ->orderBy('id', 'desc')
+            ->limit(20)
+            ->get();
 
         return response()->json($messages->reverse()->values());
     }
 
-    // Lấy tin nhắn mới hơn (Load Next - Kéo xuống dưới)
-    public function getNewerMessages($conversationID, $MessageID)
+    public function getNewerMessages(Request $request, $conversationID, $MessageID)
     {
+        $this->ensureConversationMember($request->user()->id, (int) $conversationID);
 
         $messages = Message::where('conversation_id', $conversationID)
             ->where('id', '>', $MessageID)
@@ -74,7 +77,6 @@ class ChatController extends Controller
         return response()->json($messages->values());
     }
 
-    //lấy danh sách cuộc trò chuyện của người dùng
     public function getConversationList()
     {
         $userId = Auth::id();
@@ -118,86 +120,80 @@ class ChatController extends Controller
         return response()->json($conversations);
     }
 
-    //tạo cuộc trò chuyện mới
     public function createConversation(Request $request)
     {
-        $rules = [
-            'sender_id' => 'required|exists:users,id',
-            'receiver_id' => 'required|exists:users,id|different:user1_id',
-            'message' => 'required|string|max:255',
-        ];
+        $userId = $request->user()->id;
 
-        $request->validate($rules);
-        if($request->input('sender_id') > $request->input('receiver_id')){
-            //đảm bảo user1_id luôn nhỏ hơn user2_id để tránh trùng lặp conversation
-            $user1_id = $request->input('receiver_id');
-            $user2_id = $request->input('sender_id');
-        } else {
-            $user1_id = $request->input('sender_id');
-            $user2_id = $request->input('receiver_id');
+        $payload = $request->validate([
+            'receiver_id' => 'required|exists:users,id',
+            'message' => 'required|string|max:255',
+        ]);
+
+        if ((int) $payload['receiver_id'] === $userId) {
+            return response()->json(['error' => 'Invalid receiver'], 422);
         }
 
-        $conversation = Conversation::firstOrCreate(
-            [
-                'user1_id' => $user1_id,
-                'user2_id' => $user2_id,
-            ]
-        );
-        $request->merge(['conversation_id' => $conversation->id]);
-        $this->sendMessage($request);
+        if ($userId > $payload['receiver_id']) {
+            $user1_id = $payload['receiver_id'];
+            $user2_id = $userId;
+        } else {
+            $user1_id = $userId;
+            $user2_id = $payload['receiver_id'];
+        }
+
+        $conversation = Conversation::firstOrCreate([
+            'user1_id' => $user1_id,
+            'user2_id' => $user2_id,
+        ]);
+
+        $request->merge([
+            'conversation_id' => $conversation->id,
+            'message' => $payload['message'],
+        ]);
+
+        return $this->sendMessage($request);
     }
 
-    //tìm kiếm tin nhắn trong tất cả các cuộc trò chuyện của người dùng
     public function searchMessages(Request $request)
     {
-        $request->validate([
-            'query' => 'required|string|max:255',
+        $payload = $request->validate([
+            'q' => 'required|string|max:255',
         ]);
 
         $userId = Auth::id();
-        $query = $request->input('query');
+        $query = $payload['q'];
 
-       $messages = Message::where(function ($q) use ($userId) {
+        $messages = Message::where(function ($q) use ($userId) {
             $q->where('sender_id', $userId)
-              ->orWhere('receiver_id', $userId);
+                ->orWhere('receiver_id', $userId);
         })
-        ->where('message', 'LIKE', "%{$query}%")
-        ->orderBy('created_at', 'desc')
-        ->paginate(20  );
+            ->where('message', 'LIKE', "%{$query}%")
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
 
         return response()->json($messages);
     }
 
-    //lấy tin nhắn xung quanh tin nhắn được tìm thấy
     public function fetchSearchedMessages($conversationId, $messageId)
     {
         $userId = Auth::id();
-
-        $conversation = Conversation::where('id', $conversationId)
-            ->where(fn ($q) =>
-                $q->where('user1_id', $userId)
-                ->orWhere('user2_id', $userId)
-            )
-            ->exists();
+        $this->ensureConversationMember($userId, (int) $conversationId);
 
         $baseQuery = Message::with([
             'sender:id,username,avatar',
             'receiver:id,username,avatar',
         ])->where('conversation_id', $conversationId);
 
-        // Older messages
         $older = (clone $baseQuery)
             ->where('id', '<', $messageId)
             ->orderBy('id', 'desc')
             ->limit(10)
             ->get();
 
-        // Anchor
         $anchor = (clone $baseQuery)
             ->where('id', $messageId)
             ->firstOrFail();
 
-        // Newer messages
         $newer = (clone $baseQuery)
             ->where('id', '>', $messageId)
             ->orderBy('id', 'asc')
@@ -216,10 +212,9 @@ class ChatController extends Controller
         ]);
     }
 
-    // Đánh dấu đã đọc theo message đang được hiển thị
     public function markAsRead(Request $request, $conversationID)
     {
-        $request->validate([
+        $payload = $request->validate([
             'message_id' => 'required|integer',
         ]);
 
@@ -230,12 +225,12 @@ class ChatController extends Controller
             return response()->json(['error' => 'Forbidden'], 403);
         }
 
-        $messageId = (int) $request->input('message_id');
+        $messageId = (int) $payload['message_id'];
         $messageExists = Message::where('id', $messageId)
             ->where('conversation_id', $conversationID)
             ->exists();
 
-        if (!$messageExists) {
+        if (! $messageExists) {
             return response()->json(['error' => 'Invalid message'], 422);
         }
 
@@ -250,7 +245,7 @@ class ChatController extends Controller
             }
         }
 
-        if (!empty($updates)) {
+        if (! empty($updates)) {
             Conversation::where('id', $conversationID)->update($updates);
             $conversation->refresh();
             broadcast(new MessageRead(
@@ -269,4 +264,10 @@ class ChatController extends Controller
         ]);
     }
 
+    protected function ensureConversationMember(int $userId, int $conversationId): void
+    {
+        Conversation::where('id', $conversationId)
+            ->where(fn ($q) => $q->where('user1_id', $userId)->orWhere('user2_id', $userId))
+            ->firstOrFail();
+    }
 }

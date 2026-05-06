@@ -1,64 +1,81 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import FormTitle from '@/components/forms/FormTitle.vue'
-import FormLabel from '@/components/forms/FormLabel.vue'
-import FormInput from '@/components/forms/FormInput.vue'
-import FormError from '@/components/forms/FormError.vue'
-import FormButton from '@/components/forms/FormButton.vue'
-import SocialAuthButton from '@/components/forms/SocialAuthButton.vue'
-import { RouterLink } from 'vue-router'
-import { isAxiosError } from 'axios'
-import { useToast } from 'vue-toastification'
+import { reactive } from 'vue';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
+import { isAxiosError } from 'axios';
+import { useToast } from 'vue-toastification';
+import { useAuthStore } from '@/stores/auth';
+import FormButton from '@/components/forms/FormButton.vue';
+import FormError from '@/components/forms/FormError.vue';
+import FormInput from '@/components/forms/FormInput.vue';
+import FormLabel from '@/components/forms/FormLabel.vue';
+import FormTitle from '@/components/forms/FormTitle.vue';
+import SocialAuthButton from '@/components/forms/SocialAuthButton.vue';
 
 const form = reactive({
   username: '',
   password: '',
-})
+});
 
-const router = useRouter()
-const AuthStore = useAuthStore()
-const toast = useToast()
+const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
+const toast = useToast();
 
-const errors = reactive<{ username?: string; password?: string }>({})
+const errors = reactive<{ username?: string; password?: string }>({});
 
 const validate = () => {
-  errors.username = form.username ? '' : 'Please enter your username.'
-  errors.password = form.password ? '' : 'Please enter your password.'
-  return !errors.username && !errors.password
-}
+  errors.username = form.username ? '' : 'Please enter your username.';
+  errors.password = form.password ? '' : 'Please enter your password.';
+  return !errors.username && !errors.password;
+};
 
-async function onSubmit (){
-  if (validate()){
-
-    try{
-      console.log('Submitting login form with:', form)
-      console.log('API endpoint:', import.meta.env.VITE_API_BASE_URL)
-      const payload = {
-        username: form.username,
-        password: form.password,
-      }
-      await AuthStore.login(payload)
-      if(AuthStore.user){
-        toast.success('Đăng nhập thành công!')
-        router.push({ name: 'home' })
-      }
-
-    } catch (error: unknown) {
-      if (isAxiosError(error) && error.response?.status === 422) {
-        const errorData = error.response.data as any;
-        const errorMessage = errorData?.errors?.username?.[0] || errorData?.message || 'Đăng nhập thất bại.';
-        errors.password = errorMessage;
-        toast.error(`Đăng nhập thất bại: ${errorMessage}`);
-      } else {
-        console.error('Login error:', error)
-        toast.error('Đăng nhập thất bại. Vui lòng thử lại.')
-      }
-    }
+async function onSubmit() {
+  if (!validate()) {
+    toast.error('Vui lòng điền đầy đủ thông tin.');
+    return;
   }
-  else{
-    toast.error('Vui lòng điền đầy đủ thông tin.')
+
+  // Clear previous errors
+  errors.username = '';
+  errors.password = '';
+
+  try {
+    await authStore.login({
+      username: form.username,
+      password: form.password,
+    });
+
+    if (authStore.user) {
+      toast.success('Đăng nhập thành công!');
+      const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : null;
+      router.push(redirect || { name: 'home' });
+    }
+  } catch (error: unknown) {
+    if (isAxiosError(error) && error.response?.status === 422) {
+      const errorData = error.response.data as { errors?: Record<string, string[]>; message?: string };
+      
+      // Clear errors first
+      errors.username = '';
+      errors.password = '';
+      
+      // Populate validation errors from API
+      if (errorData?.errors) {
+        if (errorData.errors.username) {
+          errors.username = errorData.errors.username[0];
+        }
+        if (errorData.errors.password) {
+          errors.password = errorData.errors.password[0];
+        }
+      }
+      
+      // If no specific field errors, show general message
+      const errorMessage = errors.username || errors.password || errorData?.message || 'Đăng nhập thất bại.';
+      toast.error(`Đăng nhập thất bại: ${errorMessage}`);
+      return;
+    }
+
+    console.error('Login error:', error);
+    toast.error('Đăng nhập thất bại. Vui lòng thử lại.');
   }
 }
 </script>
@@ -76,16 +93,16 @@ async function onSubmit (){
         @submit.prevent="onSubmit"
       >
         <FormTitle>Sign In</FormTitle>
- 
+
         <div class="w-4/5 space-y-1">
           <FormLabel for-id="username">
             <i class="fas fa-user mr-2"></i>User name:
           </FormLabel>
           <FormInput
             id="username"
+            v-model="form.username"
             name="username"
             type="text"
-            v-model="form.username"
             autocomplete="username"
           />
           <FormError :message="errors.username" />
@@ -97,9 +114,9 @@ async function onSubmit (){
           </FormLabel>
           <FormInput
             id="password"
+            v-model="form.password"
             name="password"
             type="password"
-            v-model="form.password"
             autocomplete="current-password"
           />
           <FormError :message="errors.password" />
@@ -112,7 +129,7 @@ async function onSubmit (){
         </div>
         <p class="text-sm mt-4">
           Don't have an account yet?
-          <RouterLink :to="{name :'register'}" class="text-blue-500 hover:underline">Sign Up</RouterLink>
+          <RouterLink :to="{ name: 'register' }" class="text-blue-500 hover:underline">Sign Up</RouterLink>
         </p>
       </form>
     </div>

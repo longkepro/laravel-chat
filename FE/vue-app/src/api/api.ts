@@ -1,6 +1,5 @@
 import { http } from './http';
 
-//user auth interface
 export interface User {
   id: number
   username: string
@@ -9,37 +8,32 @@ export interface User {
   avatar?: string
   google_id?: string | null
   facebook_id?: string | null
-  created_at: string
-  updated_at: string
+  created_at?: string
+  updated_at?: string
 }
 
-//response interface
-export interface AuthUser {
-  id: number
-  username: string
-  name: string | null
+export interface AuthResponse {
+  token: string
+  token_type: 'Bearer'
+  user: User
+  status?: string
 }
 
-export interface LoginResponse {
-  user: AuthUser
-}
-
-export interface registerResponse {
-  status: string;
-}
-export interface logoutResponse {
-  status: string;
+export interface LogoutResponse {
+  message: string
 }
 
 export interface OauthCallbackSuccess {
-  status: 'success';
-  token: string;
-  user: User;
+  status: 'success'
+  token: string
+  user: User
 }
+
 export interface OauthCallbackError {
-  status: 'error';
-  message: string;
+  status: 'error'
+  message: string
 }
+
 export type OauthCallbackResponse = OauthCallbackError | OauthCallbackSuccess;
 
 export interface ConversationUser {
@@ -47,16 +41,18 @@ export interface ConversationUser {
   username: string
   avatar: string | null
 }
+
 export interface MessageResponse {
-  id: number;
-  conversation_id: number;
-  sender_id: number;
-  receiver_id?: number; 
-  message: string;
-  attachment?: string;
-  created_at: string;
-  updated_at: string;
+  id: number
+  conversation_id: number
+  sender_id: number
+  receiver_id?: number
+  message: string
+  attachment?: string
+  created_at: string
+  updated_at: string
 }
+
 export interface ConversationItem {
   conversation_id: number
   user1_id: number
@@ -68,6 +64,7 @@ export interface ConversationItem {
   last_read_message_id: number | null
   updated_at: string
 }
+
 export interface PaginatedResponse<T> {
   current_page: number
   data: T[]
@@ -79,26 +76,27 @@ export interface PaginatedResponse<T> {
   per_page: number
   total: number
 }
+
 export type GetOlderMessagesResponse = MessageResponse[];
 export type GetNewerMessagesResponse = MessageResponse[];
 
 export interface ContextMessage extends MessageResponse {
-  sender: User;
-  receiver: User;
+  sender: User
+  receiver: User
 }
-//Kết quả tìm kiếm tin nhắn với ngữ cảnh
+
 export interface FetchSearchedMessagesResponse {
-  anchor_id: number;         // ID của tin nhắn mốc
-  messages: ContextMessage[]; // Mảng tin nhắn liền mạch (Older -> Anchor -> Newer)
-  has_older: boolean;
-  has_newer: boolean;
+  anchor_id: number
+  messages: ContextMessage[]
+  has_older: boolean
+  has_newer: boolean
 }
 
 export type SearchMessagesResponse = PaginatedResponse<MessageResponse>;
 
 export interface SendMessageResponse {
-  status: string;
-  message: MessageResponse;
+  status: string
+  message: MessageResponse
 }
 
 export interface SearchUserItem {
@@ -107,62 +105,64 @@ export interface SearchUserItem {
   name: string | null
   avatar: string | null
 }
+
 export interface SearchUsersResponse {
   results: SearchUserItem[]
 }
 
 export interface EditProfileSuccess {
-  status: string;
-  user: User;
+  status: string
+  user: User
 }
+
 export interface EditProfileError {
-  error: string;
+  error: string
 }
 
 export type EditProfileResponse = EditProfileSuccess | EditProfileError;
 
 export interface UpdatePasswordSuccess {
-  status: string;
+  status: string
 }
 
 export interface UpdatePasswordError {
-  error: string;
+  error: string
 }
 
 export type UpdatePasswordResponse = UpdatePasswordSuccess | UpdatePasswordError;
 
 export interface CreateConversationResponse {
-  status: string; 
-  message: MessageResponse;
+  status: string
+  message: MessageResponse
 }
 
 export interface MarkReadResponse {
-  status: string;
-  conversation_id: number;
-  last_message_id1: number | null;
-  last_message_id2: number | null;
+  status: string
+  conversation_id: number
+  last_message_id1: number | null
+  last_message_id2: number | null
 }
 
-//-----------api object-----------
 const api = {
-  //đăng ký, đăng nhập, lấy thông tin user, đăng xuất
   register(data: { username: string; email: string; password: string; password_confirmation: string }) {
-    return http.post<registerResponse>('/api/auth/register', data);
+    return http.post<AuthResponse>('/api/auth/register', data);
   },
   login(data: { username: string; password: string }) {
-    return http.post<LoginResponse>('/api/auth/login', data);
+    return http.post<AuthResponse>('/api/auth/login', data);
+  },
+  me() {
+    return http.get<User>('/api/auth/me');
   },
   profile(userID: number) {
     return http.get<User>(`/api/profile/${userID}`);
   },
   selfProfile() {
-    return http.get<User>(`/api/profile/authUser`);
+    return http.get<User>('/api/profile/authUser');
   },
   logout() {
-    return http.post<logoutResponse>('/api/auth/logout');
+    return http.post<LogoutResponse>('/api/auth/logout');
   },
 
-  // edit profile
   editProfile(data: { profile_name?: string; avatar?: File | null }) {
     const formData = new FormData();
     if (typeof data.profile_name === 'string') {
@@ -172,20 +172,15 @@ const api = {
       formData.append('avatar', data.avatar);
     }
 
-    // Do not set Content-Type manually; Axios will add the correct multipart boundary.
     return http.post<EditProfileResponse>('/api/profile/editProfile', formData);
   },
   updatePassword(data: { current_password: string; new_password: string; new_password_confirmation: string }) {
     return http.post<UpdatePasswordResponse>('/api/profile/updatePassword', data);
   },
 
-  //chat api
-  getConversations(){
+  getConversations() {
     return http.get<PaginatedResponse<ConversationItem>>('/api/conversations');
   },
-  // fetchSearchedMessages(conversationID: number, MessageID: number) {
-  //   return http.get<FetchSearchedMessagesResponse>(`/api/conversations/${conversationID}/fetchSearchMessages/${MessageID}`);
-  // },
   getOlderMessages(conversationID: number, MessageID: number) {
     return http.get<GetOlderMessagesResponse>(`/api/conversations/${conversationID}/olderMessages/${MessageID}`);
   },
@@ -194,11 +189,11 @@ const api = {
   },
   getNewerMessages(conversationID: number, MessageID: number) {
     return http.get<GetNewerMessagesResponse>(`/api/conversations/${conversationID}/newerMessages/${MessageID}`);
-  },   
-  sendMessage(data: { sender_id: number, conversation_id: number; message: string }) {
+  },
+  sendMessage(data: { conversation_id: number; message: string; attachment?: string }) {
     return http.post<SendMessageResponse>('/api/conversations/sendmessages', data);
   },
-  createConversation(data: { sender_id: number; message: string; receiver_id: number }) {
+  createConversation(data: { message: string; receiver_id: number }) {
     return http.post<CreateConversationResponse>('/api/conversations/create', data);
   },
   markConversationRead(conversationID: number, messageId: number) {
@@ -207,7 +202,6 @@ const api = {
     });
   },
 
-  //search
   searchUsers(query: string) {
     return http.get<SearchUsersResponse>('/api/search/users', { params: { q: query } });
   },
@@ -215,14 +209,8 @@ const api = {
     return http.get<FetchSearchedMessagesResponse>(`/api/conversations/${conversationID}/fetchSearchMessages/${MessageID}`);
   },
   searchMessages(query: string) {
-    return http.get<SearchMessagesResponse>(`/api/search/messages`, { params: { q: query } });
+    return http.get<SearchMessagesResponse>('/api/search/messages', { params: { q: query } });
   },
-
-  //lấy cookie CSRF từ Laravel Sanctum
-  getCsrfCookie() {
-    // Route này thường nằm ở root, KHÔNG có prefix /api
-    return http.get('/sanctum/csrf-cookie');
-  },
-}
+};
 
 export default api;

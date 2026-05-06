@@ -8,17 +8,17 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
-        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
-        api: __DIR__.'/../routes/api.php',       // Thêm dòng này để Laravel load api.php
+        api: __DIR__.'/../routes/api.php',
         apiPrefix: 'api',
-        then: function () {
-        // Thêm route khác nếu cần
-        }
     )
+    ->withBroadcasting(__DIR__.'/../routes/channels.php', [
+        'middleware' => ['auth:sanctum'],
+    ])
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->statefulApi();
+        //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
-    })->create();
+    })
+    ->create();

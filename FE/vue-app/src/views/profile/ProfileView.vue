@@ -52,8 +52,6 @@ async function saveProfile() {
   }
 
   try {
-    // Ensure XSRF cookie exists for Sanctum stateful POST requests
-    await api.getCsrfCookie()
     const response = await api.editProfile({
       profile_name: displayName.value.trim() || undefined,
       avatar: selectedAvatarFile.value,

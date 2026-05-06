@@ -1,13 +1,13 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue';
-import api from '@/api/api';
-import type { User } from '@/api/api';
+import { defineStore } from 'pinia';
+import { computed, ref } from 'vue';
+import api, { type OauthCallbackResponse, type User } from '@/api/api';
+import { clearAuthToken, getAuthToken, hasAuthToken, setAuthToken } from '@/lib/auth-token';
 import { useToast } from 'vue-toastification';
 import router from '@/router';
 
 const toast = useToast();
 
-export const useAuthStore = defineStore('auth', () =>{
+export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
 
   const isAuthenticated = computed(() => user.value !== null);
@@ -15,101 +15,98 @@ export const useAuthStore = defineStore('auth', () =>{
   const UserProfileName = computed(() => user.value?.name ?? user.value?.username);
   const Useremail = computed(() => user.value?.email);
 
-  // Luôn fetch user mới nhất từ server (dùng sau login/oauth)
-  async function fetchUser(){
-    try {
-      const response = await api.selfProfile();
-      user.value = response.data;
+  function applyAuthenticatedUser(nextUser: User, token?: string) {
+    if (token) {
+      setAuthToken(token);
     }
-    catch (error) {
-        user.value = null;
-    } 
+
+    user.value = nextUser;
   }
 
-  // Chỉ fetch nếu chưa có user (dùng khi khởi động app)
-  async function fetchUserIfNeeded(){
-    if(user.value) return;
-    await fetchUser();
-  }
+  async function fetchUser() {
+    if (!hasAuthToken()) {
+      user.value = null;
+      return;
+    }
 
-  async function login(payload: {username: string, password: string}){ 
     try {
-    await api.getCsrfCookie();
-    await api.login(payload);
-    await fetchUser();
+      const response = await api.me();
+      user.value = response.data;
     } catch (error) {
-      throw error;
-    } 
+      clearAuthToken();
+      user.value = null;
+    }
+  }
+
+  async function fetchUserIfNeeded() {
+    if (user.value || !hasAuthToken()) return;
+    await fetchUser();
+  }
+
+  async function login(payload: { username: string; password: string }) {
+    const response = await api.login(payload);
+    applyAuthenticatedUser(response.data.user, response.data.token);
   }
 
   async function Oauth(authProvider: string) {
-    try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL;
-      const oauthUrls: Record<string, string> = {
-        google:   `${baseUrl}/api/auth/google/redirect`,
-        facebook: `${baseUrl}/api/auth/facebook/redirect`,
-      };
+    const baseUrl = import.meta.env.VITE_API_BASE_URL;
+    const oauthUrls: Record<string, string> = {
+      google: `${baseUrl}/api/auth/google/redirect`,
+      facebook: `${baseUrl}/api/auth/facebook/redirect`,
+    };
 
-      const url = oauthUrls[authProvider];
-      if (!url) return;
+    const url = oauthUrls[authProvider];
+    if (!url) return;
 
-      // Xóa listener cũ trước khi thêm mới → tránh duplicate
-      window.removeEventListener('message', handlePopupMessage);
+    window.removeEventListener('message', handlePopupMessage);
 
-      const popup = window.open(url, `Login ${authProvider}`, 'width=500,height=600');
-
-      // Kiểm tra popup bị block bởi browser
-      if (!popup) {
-        toast.error('Popup bị chặn. Vui lòng cho phép popup và thử lại.');
-        return;
-      }
-
-      window.addEventListener('message', handlePopupMessage);
-
-    } catch (error) {
-      throw error;
+    const popup = window.open(url, `Login ${authProvider}`, 'width=500,height=600');
+    if (!popup) {
+      toast.error('Popup bị chặn. Vui lòng cho phép popup và thử lại.');
+      return;
     }
+
+    window.addEventListener('message', handlePopupMessage);
   }
 
-  async function handlePopupMessage(event: MessageEvent) {
-    // Chỉ xử lý message từ BE, bỏ qua Vite HMR / browser extensions / iframe khác
-    const allowedOrigin = import.meta.env.VITE_API_BASE_URL;
+  async function handlePopupMessage(event: MessageEvent<OauthCallbackResponse>) {
+    const allowedOrigin = new URL(import.meta.env.VITE_API_BASE_URL).origin;
     if (event.origin !== allowedOrigin) return;
 
-    const { status } = event.data;
+    const payload = event.data;
+    if (!payload) return;
 
-    if (status === 'success') {
+    if (payload.status === 'success' && payload.token && payload.user) {
+      applyAuthenticatedUser(payload.user, payload.token);
       await fetchUser();
       toast.success('Đăng nhập thành công!');
       router.push({ name: 'home' });
-    } else if (status === 'error') {
-      toast.error('OAuth login failed.');
-      console.error('[OAuth] Error from BE:', event.data);
+    } else if (payload.status === 'error') {
+      toast.error(payload.message || 'OAuth login failed.');
+      console.error('[OAuth] Error from BE:', payload);
     }
 
-    // Chỉ remove sau khi nhận được message thật từ BE
     window.removeEventListener('message', handlePopupMessage);
   }
-  async function register(payload: {username: string, email: string, password: string, password_confirmation: string}){
-      try {
-        await api.getCsrfCookie();
-        await api.register(payload);
-      } catch (error) {
-        throw error;
-      }
+
+  async function register(payload: { username: string; email: string; password: string; password_confirmation: string }) {
+    const response = await api.register(payload);
+    applyAuthenticatedUser(response.data.user, response.data.token);
   }
 
-  async function logout(){
-      try {
+  async function logout() {
+    try {
+      if (getAuthToken()) {
         await api.logout();
-      } catch (error) {
-        throw error;
-      } finally {
-        user.value = null;
-        // Reset toàn bộ trạng thái chat (danh sách conversation, tin nhắn, channel Echo…)
-        const { useChatStore } = await import('@/stores/chat');
-        useChatStore().reset();
       }
+    } catch (error) {
+      throw error;
+    } finally {
+      clearAuthToken();
+      user.value = null;
+      const { useChatStore } = await import('@/stores/chat');
+      useChatStore().reset();
+    }
   }
 
   return {
@@ -124,6 +121,5 @@ export const useAuthStore = defineStore('auth', () =>{
     Oauth,
     register,
     logout,
-  }
-})  
-
+  };
+});
