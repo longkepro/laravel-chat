@@ -134,30 +134,43 @@ class ProfileController extends Controller
      */
     public function searchUsers(Request $request)
     {
-        $request->validate([
-            'q' => 'required|string|max:100', // Axios gửi params: { q: ... }
-        ]);
+        try {
+            $request->validate([
+                'q' => 'required|string|max:100', // Axios gửi params: { q: ... }
+            ]);
 
-        $query = $request->input('q');
+            $query = $request->input('q');
 
-        // Tìm user theo username hoặc tên hiển thị
-        $users = User::where('username', 'LIKE', "%{$query}%")
-                     ->orWhere('profile_name', 'LIKE', "%{$query}%")
-                     ->select('id', 'username', 'profile_name', 'avatar') // Chỉ lấy cột cần thiết
-                     ->limit(20) // Giới hạn kết quả để không nặng server
-                     ->get();
+            // Tìm user theo username hoặc tên hiển thị
+            $users = User::where('username', 'LIKE', "%{$query}%")
+                         ->orWhere('profile_name', 'LIKE', "%{$query}%")
+                         ->select('id', 'username', 'profile_name', 'avatar') // Chỉ lấy cột cần thiết
+                         ->limit(20) // Giới hạn kết quả để không nặng server
+                         ->get();
 
-        // Map lại dữ liệu để chuẩn hóa output
-        $results = $users->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'username' => $user->username,
-                'name' => $user->profile_name ?? $user->username,
-                'avatar' => $user->avatar,
-            ];
-        });
+            // Map lại dữ liệu để chuẩn hóa output
+            $results = $users->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'username' => $user->username,
+                    'name' => $user->profile_name ?? $user->username,
+                    'avatar' => $user->avatar,
+                ];
+            });
 
-        // Trả về mảng results (đúng format interface frontend)
-        return response()->json(['results' => $results]);
+            // Trả về mảng results (đúng format interface frontend)
+            return response()->json(['results' => $results]);
+        } catch (\Exception $e) {
+            \Log::error('Search users error: ' . $e->getMessage(), [
+                'query' => $request->input('q'),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'message' => 'Search error: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
