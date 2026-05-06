@@ -19,3 +19,7 @@ services:
     staticPublishPath: dist
     envVars:
       - fromGroup: LongKeChat-FE
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
